@@ -13,8 +13,9 @@ use std::{
 use steamlocate::SteamDir;
 use sysinfo::System;
 
-pub static VERSION: &str = "3.0.0-alpha";
+pub static VERSION: &str = "2.9.1-alpha";
 static FF7_APPID: u32 = 39140;
+static FF7_2026_APPID: u32 = 39140;
 
 fn main() {
     if let Err(e) = logging::init() {
@@ -43,6 +44,7 @@ fn seventh_heaven() -> Result<()> {
 
     let game = with_spinner("Finding FF7...", "Done!", || {
         steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
+            .or_else(|| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()));
     })?;
 
     if let Some(runner) = &game.runner {
