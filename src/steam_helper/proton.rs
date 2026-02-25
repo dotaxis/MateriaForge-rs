@@ -1,12 +1,50 @@
-use std::path::PathBuf;
-
-#[derive(Debug, Clone)]
-pub struct Runner {
+use std::{fs, path::PathBuf};
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct Runtime {
     pub name: String,
     pub pretty_name: String,
     pub path: PathBuf,
 }
+#[derive(Debug)]
+#[derive(Clone)]
+pub struct Runner {
+    pub name: String,
+    pub pretty_name: String,
+    pub path: PathBuf,
+    pub runtime: Option<Runtime>,
+}
 use anyhow::{bail, Context, Result};
+
+fn get_runtime_appid(runner: &Runner) -> Result<u32> {
+    let manifest_path = runner.path.parent()
+        .ok_or_else(|| anyhow::anyhow!("Runner path has no parent"))?
+        .join("toolmanifest.vdf");
+    let manifest_vdf = fs::read_to_string(&manifest_path)
+        .context("Failed to read manifest file")?;
+
+    keyvalues_parser::parse(&manifest_vdf).context("Failed to parse manifest VDF")?
+        .value
+        .get_obj().context("No object in VDF")?
+        .get("require_tool_appid").context("No require_tool_appid key")?
+        .first().context("No require_tool_appid found")?
+        .get_str().context("require_tool_appid is not a string")?
+        .parse::<u32>().context("Failed to parse require_tool_appid as u32")
+}
+
+fn get_runtime(runner: &Runner) -> Result<Runtime> {
+    let runtime_appid = get_runtime_appid(runner)?;
+    let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
+    let (app, library) = steam_dir.find_app(runtime_appid)?.with_context(|| format!("Couldn't find runtime app with ID {}", runtime_appid))?;
+    let path = library.resolve_app_dir(&app);
+    let name = app.name.as_ref().context("No app name?")?.to_string();
+
+    Ok(Runtime {
+        name: name.clone(),
+        pretty_name: name,
+        path,
+    })
+}
 
 pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
     // TODO: custom runner support via compatibilitytools.d
@@ -24,11 +62,15 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         .context("No . found in name")?
                         .replace(" ", "_");
 
-                    proton_versions.push(Runner {
+                    let mut runner = Runner {
                         name,
                         pretty_name: app_name.to_string(),
                         path: app_path,
-                    });
+                        runtime: None,
+                    };
+                    runner.runtime = get_runtime(&runner).ok();
+
+                    proton_versions.push(runner);
                 } else {
                     log::info!("Does not contain proton bin: {app_path:?}");
                 }

@@ -306,9 +306,9 @@ fn install_7th(
         format!("/LOG={}", log_file),
     ];
 
-    let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
+    // let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
-    steam_helper::game::launch_exe_in_prefix(exe_path, game, Some(args), Some(runtime))
+    steam_helper::game::launch_exe_in_prefix(exe_path, game, Some(args))
         .context("Couldn't run 7th Heaven installer")?;
 
     let current_bin = env::current_exe().context("Failed to get binary path")?;
