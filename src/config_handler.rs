@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use std::{collections::HashMap, env};
 
-static CONFIG_NAME: &str = "7thDeck.toml";
+static CONFIG_NAME: &str = "MateriaForge.toml";
 
 pub fn write(config: HashMap<&str, String>) -> Result<()> {
     let current_bin = env::current_exe()?;
