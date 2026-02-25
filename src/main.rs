@@ -235,7 +235,9 @@ fn seventh_heaven_steam() -> Result<()> {
 }
 
 fn seventh_heaven_gog(game: &lib_game_detector::data::Game) -> Result<()> {
-    println!("GOG Game: {:#?}", game);
+    let gog_game = gog_helper::get_game(FF7_GOG_APPID, game).context("Failed to get GOG game details")?;
+    println!("GOG Game details: {:#?}", gog_game);
+    println!("Runner details: {:#?}", gog_game.runner);
     Ok(())
 }
 

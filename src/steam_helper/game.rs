@@ -1,7 +1,6 @@
 use super::proton::{self, Runner};
 use anyhow::{bail, Context, Result};
 use glob::glob;
-use log4rs::config::runtime;
 use regex::Regex;
 use std::{
     fs::{self, metadata},
@@ -95,7 +94,6 @@ pub fn launch_exe_in_prefix(
         .clone()
         .with_context(|| format!("Game has no runner? {game:?}"))?;
     log::info!("Proton bin: {}", proton.path.display());
-
 
     let mut command: Command;
     if let Some(runtime) = proton.runtime {
