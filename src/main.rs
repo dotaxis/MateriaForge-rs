@@ -10,8 +10,8 @@ use seventh_deck::{
 use std::{
     collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
 };
-use steamlocate::{SteamDir, shortcut};
-use sysinfo::System;
+use steamlocate::SteamDir;
+use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
 pub static VERSION: &str = "2.9.1-alpha";
 const FF7_APPID: u32 = 39140;
@@ -23,74 +23,54 @@ fn main() {
         std::process::exit(1);
     }
 
-    if logging::log_and_return(seventh_heaven()).is_err() {
+    draw_header();
+
+    if logging::log_and_return(detect_versions()).is_err() {
         std::process::exit(1);
     }
 }
 
-fn seventh_heaven() -> Result<()> {
-    let mut config = HashMap::new();
+fn detect_versions() -> Result<()> {
+    let detector = get_detector();
+    let ff7_installs = detector.get_all_detected_games();
+    let steam_game = ff7_installs.iter().find(|game| {
+        game.title.to_lowercase().contains("final fantasy vii")
+            &&
+        game.source == SupportedLaunchers::Steam
+    });
+    let heroic_game = ff7_installs.iter().find(|game| {
+        game.title.to_lowercase().contains("final fantasy vii")
+            &&
+        game.source == SupportedLaunchers::HeroicGamesGOG
+    });
 
-    draw_header();
+    let _ = match (steam_game, heroic_game) {
+        (Some(_), Some(gog)) => {
+            let choices = &["Steam", "Heroic Games"];
+            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
+                .default(0)
+                .items(choices)
+                .interact()?;
 
-    let steam_dir = steam_helper::get_library()?;
-    config.insert("steam_dir", steam_dir.path().display().to_string());
-
-    let cache_dir = home::home_dir()
-        .context("Couldn't find $HOME?")?
-        .join(".cache");
-    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
-        .expect("Failed to download 7th Heaven!");
-
-    let game = with_spinner("Finding FF7...", "Done!", || {
-        steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
-            .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
-    })?;
-
-    if let Some(runner) = &game.runner {
-        log::info!("Runner set for {}: {}", game.name, runner.pretty_name);
-        config.insert("runner", runner.name.clone());
-    }
-
-    config_handler::write(config).context("Failed to write config")?;
-
-    with_spinner("Killing Steam...", "Done!", steam_helper::kill_steam)?;
-
-    // TODO: "Clean install"
-    // Wipe common files
-    // Verify game files
-    // Back up saves
-    // Set proton version
-    // Wipe prefix
-    // Rebuild prefix
-    // Restore saves
-
-    // with_spinner("Setting Launch Options...", "Done!", || {
-    //     steam_helper::game::set_launch_options(&game).context("Failed to set launch options")
-    // })?;
-
-    let install_path = get_install_path()?;
-    with_spinner("Installing 7th Heaven...", "Done!", || {
-        install_7th(&game, exe_path, &install_path, "7thHeaven.log")
-    })?;
-
-    with_spinner("Patching installation...", "Done!", || {
-        patch_install(&install_path, &game)
-    })?;
-
-    // TODO: steamOS control scheme + auto-config mod
-
-    create_shortcuts(&install_path, steam_dir).context("Failed to create shortcuts")?;
-
-    println!(
-        "{} 7th Heaven successfully installed to '{}'",
-        console::style("✔").green(),
-        console::style(&install_path.display())
-            .bold()
-            .underlined()
-            .white()
-    );
-
+            match selection {
+                0 => seventh_heaven_steam(),
+                1 => seventh_heaven_gog(gog),
+                _ => unreachable!(),
+            }
+        }
+        (None, Some(gog)) => {
+            log::info!("Heroic Games Launcher install detected!");
+            seventh_heaven_gog(gog)
+        }
+        (Some(_), None) => {
+            log::info!("Steam install detected!");
+            seventh_heaven_steam()
+        }
+        (None, None) => {
+            anyhow::bail!("Couldn't find any supported versions of FF7!");
+        }
+    };
     Ok(())
 }
 
@@ -186,6 +166,75 @@ fn draw_header() {
         println!("Understood. Exiting.");
         std::process::exit(0);
     }
+}
+
+fn seventh_heaven_steam() -> Result<()> {
+    let mut config = HashMap::new();
+
+    let steam_dir = steam_helper::get_library()?;
+    config.insert("steam_dir", steam_dir.path().display().to_string());
+
+    let cache_dir = home::home_dir()
+        .context("Couldn't find $HOME?")?
+        .join(".cache");
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
+        .expect("Failed to download 7th Heaven!");
+
+    let game = with_spinner("Finding FF7...", "Done!", || {
+        steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
+            .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
+    })?;
+
+    if let Some(runner) = &game.runner {
+        log::info!("Runner set for {}: {}", game.name, runner.pretty_name);
+        config.insert("runner", runner.name.clone());
+    }
+
+    config_handler::write(config).context("Failed to write config")?;
+
+    with_spinner("Killing Steam...", "Done!", steam_helper::kill_steam)?;
+
+    // TODO: "Clean install"
+    // Wipe common files
+    // Verify game files
+    // Back up saves
+    // Set proton version
+    // Wipe prefix
+    // Rebuild prefix
+    // Restore saves
+
+    // with_spinner("Setting Launch Options...", "Done!", || {
+    //     steam_helper::game::set_launch_options(&game).context("Failed to set launch options")
+    // })?;
+
+    let install_path = get_install_path()?;
+    with_spinner("Installing 7th Heaven...", "Done!", || {
+        install_7th(&game, exe_path, &install_path, "7thHeaven.log")
+    })?;
+
+    with_spinner("Patching installation...", "Done!", || {
+        patch_install(&install_path, &game)
+    })?;
+
+    // TODO: steamOS control scheme + auto-config mod
+
+    create_shortcuts(&install_path, steam_dir).context("Failed to create shortcuts")?;
+
+    println!(
+        "{} 7th Heaven successfully installed to '{}'",
+        console::style("✔").green(),
+        console::style(&install_path.display())
+            .bold()
+            .underlined()
+            .white()
+    );
+
+    Ok(())
+}
+
+fn seventh_heaven_gog(game: &lib_game_detector::data::Game) -> Result<()> {
+    println!("GOG Game: {:#?}", game);
+    Ok(())
 }
 
 fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
