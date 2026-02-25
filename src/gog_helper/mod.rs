@@ -1,9 +1,9 @@
 use std::path::PathBuf;
-use super::steam_helper::proton::Runner;
-use anyhow::Context;
-use dialoguer::Result;
+use anyhow::{Context, Result};
 use serde_json::Value;
+use lib_game_detector::data::Game;
 
+#[derive(Debug)]
 pub struct GogGame {
     pub app_id: u32,
     pub name: String,
@@ -12,18 +12,37 @@ pub struct GogGame {
     pub runner: Option<Runner>,
 }
 
-pub fn get_game(app_id: u32) -> Result<GogGame> {
+#[derive(Debug)]
+pub struct Runner {
+    pub name: String,
+    pub runner_type: String,
+    pub path: PathBuf,
+}
+
+pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
     let heroic_config_path = get_heroic_config_path();
     let game_json_path = heroic_config_path.join("GamesConfig").join("{}.json}").with_file_name(app_id.to_string() + ".json");
-    let game_json_string = std::fs::read_to_string(game_json_path).expect("Failed to read GOG game JSON");
+    let game_json_string = std::fs::read_to_string(game_json_path).context("Failed to read GOG game JSON")?;
 
-    let json: Value = serde_json::from_str(&game_json_string).expect("Failed to parse GOG game JSON");
+    let root: Value = serde_json::from_str(&game_json_string).context("Failed to parse GOG game JSON")?;
+    let json = root.get(app_id.to_string()).context("GOG game JSON missing app ID key")?;
+    let prefix = json.get("winePrefix").and_then(|v| v.as_str()).map(PathBuf::from).context("GOG game JSON missing winePrefix")?;
+    let wine_version = json.get("wineVersion").and_then(Value::as_object).context("GOG game JSON missing wineVersion")?;
+
+    // println!("GOG Game JSON: {:#?}", json);
+
+    let runner = Runner {
+        name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
+        runner_type: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
+        path: wine_version.get("bin").and_then(Value::as_str).map(PathBuf::from).context("GOG game JSON missing wineVersion bin")?,
+    };
+
     Ok(GogGame {
         app_id,
-        name: "FF7".to_string(),
-        path: PathBuf::new(),
-        prefix: PathBuf::new(),
-        runner: None,
+        name: game.title.clone(),
+        path: game.path_game_dir.clone().ok_or_else(|| anyhow::anyhow!("Game is missing path_game_dir in detector result"))?,
+        prefix: prefix,
+        runner: Some(runner),
     })
 }
 
