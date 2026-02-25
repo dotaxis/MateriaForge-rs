@@ -15,7 +15,7 @@ use sysinfo::System;
 
 pub static VERSION: &str = "2.9.1-alpha";
 static FF7_APPID: u32 = 39140;
-static FF7_2026_APPID: u32 = 39140;
+static FF7_2026_APPID: u32 = 3837340;
 
 fn main() {
     if let Err(e) = logging::init() {
@@ -39,12 +39,12 @@ fn seventh_heaven() -> Result<()> {
     let cache_dir = home::home_dir()
         .context("Couldn't find $HOME?")?
         .join(".cache");
-    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir)
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
         .expect("Failed to download 7th Heaven!");
 
     let game = with_spinner("Finding FF7...", "Done!", || {
         steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
-            .or_else(|| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()));
+            .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
     })?;
 
     if let Some(runner) = &game.runner {
@@ -65,9 +65,9 @@ fn seventh_heaven() -> Result<()> {
     // Rebuild prefix
     // Restore saves
 
-    with_spinner("Setting Launch Options...", "Done!", || {
-        steam_helper::game::set_launch_options(&game).context("Failed to set launch options")
-    })?;
+    // with_spinner("Setting Launch Options...", "Done!", || {
+    //     steam_helper::game::set_launch_options(&game).context("Failed to set launch options")
+    // })?;
 
     let install_path = get_install_path()?;
     with_spinner("Installing 7th Heaven...", "Done!", || {
@@ -188,14 +188,28 @@ fn draw_header() {
     }
 }
 
-fn download_asset(repo: &str, destination: PathBuf) -> Result<PathBuf> {
+fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();
-    let release_url = format!("https://api.github.com/repos/{repo}/releases/latest");
-    let response: serde_json::Value = client
-        .get(&release_url)
-        .header("User-Agent", "rust-client")
-        .send()?
-        .json()?;
+
+    let response: serde_json::Value = if prerelease {
+        let releases_url = format!("https://api.github.com/repos/{repo}/releases");
+        let releases: Vec<serde_json::Value> = client
+            .get(&releases_url)
+            .header("User-Agent", "rust-client")
+            .send()?
+            .json()?;
+        releases
+            .into_iter()
+            .next()
+            .context("No releases found in GitHub repo")?
+    } else {
+        let release_url = format!("https://api.github.com/repos/{repo}/releases/latest");
+        client
+            .get(&release_url)
+            .header("User-Agent", "rust-client")
+            .send()?
+            .json()?
+    };
 
     let assets = response["assets"]
         .as_array()
@@ -292,7 +306,9 @@ fn install_7th(
         format!("/LOG={}", log_file),
     ];
 
-    steam_helper::game::launch_exe_in_prefix(exe_path, game, Some(args), None)
+    let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
+
+    steam_helper::game::launch_exe_in_prefix(exe_path, game, Some(args), Some(runtime))
         .context("Couldn't run 7th Heaven installer")?;
 
     let current_bin = env::current_exe().context("Failed to get binary path")?;

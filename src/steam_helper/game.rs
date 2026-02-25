@@ -24,7 +24,7 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         "Located Steam installation: {}",
         steam_dir_pathbuf.display()
     );
-    let (app, library) = steam_dir.find_app(app_id)?.unwrap();
+    let (app, library) = steam_dir.find_app(app_id)?.with_context(|| format!("Couldn't find app with ID {}", app_id))?;
     let path = library.resolve_app_dir(&app);
     let name = app.name.context("No app name?")?.to_string();
     let prefix = library
