@@ -1,6 +1,7 @@
 use super::proton::{self, Runner};
 use anyhow::{bail, Context, Result};
 use glob::glob;
+use log4rs::config::runtime;
 use regex::Regex;
 use std::{
     fs::{self, metadata},
@@ -9,6 +10,7 @@ use std::{
 };
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct SteamGame {
     pub app_id: u32,
     pub name: String,
@@ -87,17 +89,16 @@ pub fn launch_exe_in_prefix(
     exe_to_launch: PathBuf,
     game: &SteamGame,
     args: Option<Vec<String>>,
-    use_runtime: Option<SteamGame>,
 ) -> Result<()> {
     let proton = game
         .runner
         .clone()
-        .with_context(|| format!("Game has no runner? {game:?}"))?
-        .path;
-    log::info!("Proton bin: {proton:?}");
+        .with_context(|| format!("Game has no runner? {game:?}"))?;
+    log::info!("Proton bin: {}", proton.path.display());
+
 
     let mut command: Command;
-    if let Some(runtime) = use_runtime {
+    if let Some(runtime) = proton.runtime {
         let runtime_path = runtime.path.join("run");
         log::info!("{} path: {runtime_path:?}", runtime.name);
         command = Command::new(runtime_path);
@@ -113,7 +114,7 @@ pub fn launch_exe_in_prefix(
             .stdout(Stdio::null())
             .stderr(Stdio::null()) // TODO: log this properly
             .arg("--")
-            .arg(proton)
+            .arg(proton.path)
             .arg("waitforexitandrun")
             .arg(&exe_to_launch);
         let args = args.unwrap_or_default();
@@ -123,7 +124,7 @@ pub fn launch_exe_in_prefix(
         }
     } else {
         // no runtime
-        command = Command::new(proton);
+        command = Command::new(proton.path);
         command
             .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
             .env(

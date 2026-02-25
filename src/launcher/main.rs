@@ -34,7 +34,7 @@ fn main() -> Result<()> {
     }
     let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
-    steam_helper::game::launch_exe_in_prefix(seventh_heaven_exe, &game, None, Some(runtime))
+    steam_helper::game::launch_exe_in_prefix(seventh_heaven_exe, &game, None)
         .context("Failed to launch 7th Heaven.")?;
 
     Ok(())
