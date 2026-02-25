@@ -3,6 +3,7 @@ use seventh_deck::{config_handler, logging, steam_helper};
 use std::{env, path::Path};
 
 static FF7_APPID: u32 = 39140;
+static FF7_2026_APPID: u32 = 3837340;
 static SLR_APPID: u32 = 1628350;
 
 fn main() -> Result<()> {
@@ -22,7 +23,15 @@ fn main() -> Result<()> {
     let steam_dir = steamlocate::SteamDir::from_dir(Path::new(steam_dir_str))?;
     log::info!("Steam path: {}", steam_dir.path().display());
 
-    let game = steam_helper::game::get_game(FF7_APPID, steam_dir.clone())?;
+    let game = steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
+    .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
+    .with_context(|| "Couldn't find either FF7 or FF7 2026 Edition in the Steam library.")?;
+
+     if let Some(runner) = &game.runner {
+        log::info!("Found runner: {}", runner.name);
+    } else {
+        log::info!("No runner found for the game.");
+    }
     let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
     steam_helper::game::launch_exe_in_prefix(seventh_heaven_exe, &game, None, Some(runtime))
