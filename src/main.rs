@@ -10,12 +10,12 @@ use seventh_deck::{
 use std::{
     collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
 };
-use steamlocate::SteamDir;
+use steamlocate::{SteamDir, shortcut};
 use sysinfo::System;
 
 pub static VERSION: &str = "2.9.1-alpha";
-static FF7_APPID: u32 = 39140;
-static FF7_2026_APPID: u32 = 3837340;
+const FF7_APPID: u32 = 39140;
+const FF7_2026_APPID: u32 = 3837340;
 
 fn main() {
     if let Err(e) = logging::init() {
@@ -350,6 +350,8 @@ fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
         install_path.join("7thWorkshop"),
         resource_handler::SETTINGS_XML,
     );
+
+
     let library_location = &format!(
         "Z:{}",
         install_path
@@ -358,19 +360,30 @@ fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
             .unwrap()
             .replace("/", "\\")
     );
-    let ff7_exe = &format!(
+    let ff7_exe = match game.app_id  {
+        FF7_APPID => "ff7_en.exe",
+        FF7_2026_APPID => "FFVII.exe",
+        _ => "ff7_en.exe"
+    };
+    let ff7_exe_path = &format!(
         "Z:{}",
         game.path
-            .join("ff7_en.exe")
+            .join(ff7_exe)
             .to_string_lossy()
             .replace("/", "\\")
     );
-    log::info!("Mods path: {library_location}");
-    log::info!("FF7 Exe path: {ff7_exe}");
+    let update_channel = match game.app_id  {
+        FF7_APPID => "Stable",
+        FF7_2026_APPID => "Canary",
+        _ => "Stable"
+    };
+
+
     settings_xml.contents = settings_xml
         .contents
         .replace("LIBRARY_LOCATION", library_location)
-        .replace("FF7_EXE", ff7_exe);
+        .replace("FF7_EXE", ff7_exe_path)
+        .replace("UPDATE_CHANNEL", update_channel);
 
     std::fs::write(&settings_xml.destination, settings_xml.contents)
         .with_context(|| format!("Couldn't write to {:?}", settings_xml.destination))?;
@@ -388,13 +401,18 @@ fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
 }
 
 fn create_shortcuts(install_path: &Path, steam_dir: SteamDir) -> Result<()> {
-    let xdg_dirs = xdg::BaseDirectories::with_prefix("applications");
-    let applications_dir = xdg_dirs.place_config_file("7th Heaven.desktop")?;
-    let shortcut_file = resource_handler::as_str(
+    // App launcher shortcut
+    let applications_dir = xdg::BaseDirectories::new().get_data_home().context("Couldn't get xdg_data_home")?.join("applications");
+    let mut shortcut_file = resource_handler::as_str(
         "7th Heaven.desktop".to_string(),
         applications_dir,
-        resource_handler::SETTINGS_XML,
+        resource_handler::SHORTCUT_FILE,
     );
+
+    shortcut_file.contents = shortcut_file
+        .contents
+        .replace("INSTALL_PATH", &install_path.to_string_lossy());
+
     std::fs::write(&shortcut_file.destination, &shortcut_file.contents).with_context(|| {
         format!(
             "Couldn't write {} to {:?}",
