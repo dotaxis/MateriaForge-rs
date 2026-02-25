@@ -13,7 +13,7 @@ pub fn init() -> Result<()> {
     let current_dir = current_bin
         .parent()
         .context("Failed to get binary directory")?;
-    let log_path = current_dir.join("7thDeck.log");
+    let log_path = current_dir.join("MateriaForge.log");
 
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new("[{h({l})}] {m}{n}")))

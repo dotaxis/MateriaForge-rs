@@ -2,10 +2,10 @@
 name = "seventh-deck"
 version = "0.1.0"
 edition = "2021"
-default-run = "7thDeck"
+default-run = "MateriaForge"
 
 [[bin]]
-name = "7thDeck"
+name = "MateriaForge"
 path = "src/main.rs"
 
 [[bin]]

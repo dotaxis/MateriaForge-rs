@@ -14,7 +14,7 @@ use std::{
 use steamlocate::SteamDir;
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
-pub static VERSION: &str = "2.9.1-alpha";
+pub static VERSION: &str = "0.1.0";
 const FF7_APPID: u32 = 39140;
 const FF7_2026_APPID: u32 = 3837340;
 const FF7_GOG_APPID: u32 = 1698970154;
@@ -77,7 +77,7 @@ fn detect_versions() -> Result<()> {
 }
 
 fn draw_header() {
-    let title = format!("Welcome to 7thDeck {VERSION}");
+    let title = format!("Welcome to MateriaForge {VERSION}");
     let description = [
         "This script will:",
         "1. Apply patches to FF7's proton prefix to accommodate 7th Heaven",
@@ -368,8 +368,8 @@ fn install_7th(
     let current_dir = current_bin
         .parent()
         .context("Failed to get binary directory")?;
-    let toml_path = current_dir.join("7thDeck.toml");
-    std::fs::copy(toml_path, install_path.join("7thDeck.toml"))
+    let toml_path = current_dir.join("MateriaForge.toml");
+    std::fs::copy(toml_path, install_path.join("MateriaForge.toml"))
         .context("Failed to copy TOML to install_path")?;
 
     let launcher_path = if cfg!(debug_assertions) {
