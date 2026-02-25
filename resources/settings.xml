@@ -31,8 +31,8 @@
   <LibraryLocation>LIBRARY_LOCATION</LibraryLocation>
   <FF7Exe>FF7_EXE</FF7Exe>
   <FF7InstalledVersion>Steam</FF7InstalledVersion>
-  <FFNxUpdateChannel>Stable</FFNxUpdateChannel>
-  <AppUpdateChannel>Stable</AppUpdateChannel>
+  <FFNxUpdateChannel>UPDATE_CHANNEL</FFNxUpdateChannel>
+  <AppUpdateChannel>UPDATE_CHANNEL</AppUpdateChannel>
   <Options>
     <GeneralOptions>AutoSortMods</GeneralOptions>
     <GeneralOptions>AutoActiveNewMods</GeneralOptions>
