@@ -4,7 +4,6 @@ use std::{env, path::Path};
 
 static FF7_APPID: u32 = 39140;
 static FF7_2026_APPID: u32 = 3837340;
-static SLR_APPID: u32 = 1628350;
 
 fn main() -> Result<()> {
     logging::init()?;
@@ -32,7 +31,6 @@ fn main() -> Result<()> {
     } else {
         log::info!("No runner found for the game.");
     }
-    let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
     steam_helper::game::launch_exe_in_prefix(seventh_heaven_exe, &game, None)
         .context("Failed to launch 7th Heaven.")?;
