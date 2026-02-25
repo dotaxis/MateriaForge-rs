@@ -6,6 +6,7 @@ use rfd::FileDialog;
 use seventh_deck::{
     config_handler, logging, resource_handler,
     steam_helper::{self, game::SteamGame},
+    gog_helper,
 };
 use std::{
     collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
@@ -16,6 +17,7 @@ use lib_game_detector::{data::SupportedLaunchers, get_detector};
 pub static VERSION: &str = "2.9.1-alpha";
 const FF7_APPID: u32 = 39140;
 const FF7_2026_APPID: u32 = 3837340;
+const FF7_GOG_APPID: u32 = 1698970154;
 
 fn main() {
     if let Err(e) = logging::init() {
