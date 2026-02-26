@@ -29,50 +29,6 @@ fn main() {
     }
 }
 
-fn detect_versions() -> Result<()> {
-    let detector = get_detector();
-    let ff7_installs = detector.get_all_detected_games();
-    let steam_game = ff7_installs.iter().find(|game| {
-        game.title.to_lowercase().contains("final fantasy vii")
-            &&
-        game.source == SupportedLaunchers::Steam
-    });
-    let heroic_game = ff7_installs.iter().find(|game| {
-        game.title.to_lowercase().contains("final fantasy vii")
-            &&
-        game.source == SupportedLaunchers::HeroicGamesGOG
-    });
-
-    let _ = match (steam_game, heroic_game) {
-        (Some(_), Some(gog)) => {
-            let choices = &["Steam", "Heroic Games"];
-            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
-                .default(0)
-                .items(choices)
-                .interact()?;
-
-            match selection {
-                0 => seventh_heaven_steam()?,
-                1 => seventh_heaven_gog(gog)?,
-                _ => unreachable!(),
-            }
-        }
-        (None, Some(gog)) => {
-            log::info!("Heroic Games Launcher install detected!");
-            seventh_heaven_gog(gog)?
-        }
-        (Some(_), None) => {
-            log::info!("Steam install detected!");
-            seventh_heaven_steam()?
-        }
-        (None, None) => {
-            anyhow::bail!("Couldn't find any supported versions of FF7!");
-        }
-    };
-    Ok(())
-}
-
 fn draw_header() {
     let title = format!("Welcome to MateriaForge {VERSION}");
     let description = [
@@ -165,6 +121,50 @@ fn draw_header() {
         println!("Understood. Exiting.");
         std::process::exit(0);
     }
+}
+
+fn detect_versions() -> Result<()> {
+    let detector = get_detector();
+    let ff7_installs = detector.get_all_detected_games();
+    let steam_game = ff7_installs.iter().find(|game| {
+        game.title.to_lowercase().contains("final fantasy vii")
+            &&
+        game.source == SupportedLaunchers::Steam
+    });
+    let heroic_game = ff7_installs.iter().find(|game| {
+        game.title.to_lowercase().contains("final fantasy vii")
+            &&
+        game.source == SupportedLaunchers::HeroicGamesGOG
+    });
+
+    let _ = match (steam_game, heroic_game) {
+        (Some(_), Some(gog)) => {
+            let choices = &["Steam", "Heroic Games"];
+            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
+                .default(0)
+                .items(choices)
+                .interact()?;
+
+            match selection {
+                0 => seventh_heaven_steam()?,
+                1 => seventh_heaven_gog(gog)?,
+                _ => unreachable!(),
+            }
+        }
+        (None, Some(gog)) => {
+            log::info!("Heroic Games Launcher install detected!");
+            seventh_heaven_gog(gog)?
+        }
+        (Some(_), None) => {
+            log::info!("Steam install detected!");
+            seventh_heaven_steam()?
+        }
+        (None, None) => {
+            anyhow::bail!("Couldn't find any supported versions of FF7!");
+        }
+    };
+    Ok(())
 }
 
 fn seventh_heaven_steam() -> Result<()> {
