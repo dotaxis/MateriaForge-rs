@@ -176,16 +176,43 @@ fn seventh_heaven_steam() -> Result<()> {
     let steam_dir = steam_helper::get_library()?;
     config.insert("steam_dir", steam_dir.path().display().to_string());
 
+    let (original, remaster) = with_spinner("Finding FF7...", "Done!", || {
+        let original = steam_helper::game::get_game(FF7_APPID, steam_dir.clone()).ok();
+        let remaster = steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
+        if original.is_none() && remaster.is_none() {
+            anyhow::bail!("Couldn't find any supported Steam version of FF7");
+        }
+        Ok((original, remaster))
+    })?;
+
+    let game = match (original, remaster) {
+        (Some(og), Some(rm)) => {
+            let choices = &[&og.name, &rm.name];
+            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Multiple Steam installations of FF7 were detected. Which one do you want to patch?")
+                .default(0)
+                .items(choices)
+                .interact()
+                .context("Selection failed")?;
+
+            match selection {
+                0 => og,
+                1 => rm,
+                _ => unreachable!(),
+            }
+        }
+        (Some(og), None) => og,
+        (None, Some(rm)) => rm,
+        (None, None) => unreachable!(),
+    };
+
     let cache_dir = home::home_dir()
         .context("Couldn't find $HOME?")?
         .join(".cache");
-    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
-        .expect("Failed to download 7th Heaven!");
 
-    let game = with_spinner("Finding FF7...", "Done!", || {
-        steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
-            .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
-    })?;
+    let prerelease = game.app_id == FF7_2026_APPID;
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, prerelease)
+        .expect("Failed to download 7th Heaven!");
 
     if let Some(runner) = &game.runner {
         log::info!("Runner set for {}: {}", game.name, runner.pretty_name);
