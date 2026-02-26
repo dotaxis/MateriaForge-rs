@@ -4,12 +4,11 @@ use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
 use materia_forge::{
-    config_handler, gamelib_helper::{self, gog_game, steam_game::SteamGame}, logging, resource_handler
+    config_handler, gamelib_helper::{self, Game, PrefixLauncher, gog_game}, logging, resource_handler
 };
 use std::{
     collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
 };
-use steamlocate::SteamDir;
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -170,6 +169,7 @@ fn draw_header() {
 
 fn seventh_heaven_steam() -> Result<()> {
     let mut config = HashMap::new();
+    config.insert("type", "steam".to_string());
 
     let steam_dir = gamelib_helper::steam_lib::get_library()?;
     config.insert("steam_dir", steam_dir.path().display().to_string());
@@ -239,7 +239,7 @@ fn seventh_heaven_steam() -> Result<()> {
 
     // TODO: steamOS control scheme + auto-config mod
 
-    create_shortcuts(&install_path, steam_dir).context("Failed to create shortcuts")?;
+    create_shortcuts(&install_path, Some(steam_dir)).context("Failed to create shortcuts")?;
 
     println!(
         "{} 7th Heaven successfully installed to '{}'",
@@ -253,10 +253,58 @@ fn seventh_heaven_steam() -> Result<()> {
     Ok(())
 }
 
-fn seventh_heaven_gog(game: &lib_game_detector::data::Game) -> Result<()> {
-    let gog_game = gog_game::get_game(FF7_GOG_APPID, game).context("Failed to get GOG game details")?;
-    println!("GOG Game details: {:#?}", gog_game);
-    println!("Runner details: {:#?}", gog_game.runner);
+fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> {
+    let game = gog_game::get_game(FF7_GOG_APPID, found_game).context("Failed to get GOG game details")?;
+    println!("GOG Game details: {:#?}", game);
+    
+    let mut config = HashMap::new();
+    config.insert("type", "gog".to_string());
+
+    let cache_dir = home::home_dir()
+        .context("Couldn't find $HOME?")?
+        .join(".cache");
+
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
+        .expect("Failed to download 7th Heaven!");
+
+    if let Some(runner) = &game.runner {
+        log::info!("Runner set for {}: {}", game.name, runner.pretty_name);
+        config.insert("runner", runner.name.clone());
+    }
+
+    config_handler::write(config).context("Failed to write config")?;
+
+    // TODO: "Clean install"
+    // Wipe common files
+    // Verify game files
+    // Back up saves
+    // Set proton version
+    // Wipe prefix
+    // Rebuild prefix
+    // Restore saves
+
+    let install_path = get_install_path()?;
+    with_spinner("Installing 7th Heaven...", "Done!", || {
+        install_7th(&game, exe_path, &install_path, "7thHeaven.log")
+    })?;
+
+    with_spinner("Patching installation...", "Done!", || {
+        patch_install(&install_path, &game)
+    })?;
+
+    // TODO: steamOS control scheme + auto-config mod
+
+    create_shortcuts(&install_path, None).context("Failed to create shortcuts")?;
+
+    println!(
+        "{} 7th Heaven successfully installed to '{}'",
+        console::style("✔").green(),
+        console::style(&install_path.display())
+            .bold()
+            .underlined()
+            .white()
+    );
+
     Ok(())
 }
 
@@ -366,23 +414,26 @@ fn get_install_path() -> Result<PathBuf> {
     }
 }
 
-fn install_7th(
-    game: &SteamGame,
+fn install_7th<G>(
+    game: &G,
     exe_path: PathBuf,
     install_path: &Path,
     log_file: &str,
-) -> Result<()> {
+) -> Result<()>
+where
+    G: Game + PrefixLauncher,
+{
     let exe_path = exe_path
         .canonicalize()
         .with_context(|| format!("Installer not found at {:?}", exe_path))?;
 
-    if let Some(runner) = &game.runner {
+    if let Some(runner) = game.runner() {
         log::info!("Using runner: {} ({})", runner.pretty_name, runner.name);
     } else {
         log::warn!("No runner set on detected game");
     }
     log::info!("Installer path: {}", exe_path.display());
-    log::info!("Game prefix: {}", game.prefix.display());
+    log::info!("Game prefix: {}", game.prefix().display());
 
     let args: Vec<String> = vec![
         "/VERYSILENT".to_string(),
@@ -395,7 +446,7 @@ fn install_7th(
 
     // let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
-    gamelib_helper::steam_game::launch_exe_in_prefix(exe_path, game, Some(args))
+    game.run_in_prefix(exe_path, Some(args))
         .context("Couldn't run 7th Heaven installer")?;
 
     let current_bin = env::current_exe().context("Failed to get binary path")?;
@@ -417,11 +468,11 @@ fn install_7th(
     Ok(())
 }
 
-fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
+fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
     // Send timeout.exe to system32
     let timeout_exe = resource_handler::as_bytes(
         "timeout.exe".to_string(),
-        game.prefix.join("drive_c/windows/system32"),
+        game.prefix().join("drive_c/windows/system32"),
         resource_handler::TIMEOUT_EXE,
     );
     std::fs::write(&timeout_exe.destination, timeout_exe.contents).with_context(|| {
@@ -459,22 +510,24 @@ fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
             .unwrap()
             .replace("/", "\\")
     );
-    let ff7_exe = match game.app_id  {
+    let ff7_exe = match game.app_id()  {
         FF7_APPID => "ff7_en.exe",
         FF7_2026_APPID => "FFVII.exe",
-        _ => "ff7_en.exe"
+        FF7_GOG_APPID => "FFVII.exe",
+        _ => "FFVII.exe"
     };
     let ff7_exe_path = &format!(
         "Z:{}",
-        game.path
+        game.path()
             .join(ff7_exe)
             .to_string_lossy()
             .replace("/", "\\")
     );
-    let update_channel = match game.app_id  {
+    let update_channel = match game.app_id()  {
         FF7_APPID => "Stable",
         FF7_2026_APPID => "Canary",
-        _ => "Stable"
+        FF7_GOG_APPID => "Canary",
+        _ => "Canary"
     };
 
 
@@ -499,7 +552,7 @@ fn patch_install(install_path: &Path, game: &SteamGame) -> Result<()> {
     Ok(())
 }
 
-fn create_shortcuts(install_path: &Path, steam_dir: SteamDir) -> Result<()> {
+fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir>) -> Result<()> {
     // App launcher shortcut
     let applications_dir = xdg::BaseDirectories::new().get_data_home().context("Couldn't get xdg_data_home")?.join("applications");
     let mut shortcut_file = resource_handler::as_str(
@@ -574,20 +627,22 @@ fn create_shortcuts(install_path: &Path, steam_dir: SteamDir) -> Result<()> {
     }
 
     // Non-Steam Game
-    let choices = &["Yes", "No"];
-    let confirm = dialoguer::Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Do you want to add a shortcut to Steam?")
-        .default(0) // Default to "Yes"
-        .items(choices)
-        .interact()?;
-    match confirm {
-        0 => {
-            term.clear_last_lines(1)?;
-            println!("{} Adding Steam shortcut.", console::style("!").yellow());
-            gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join("Launch 7th Heaven"), steam_dir)?;
-        }
-        _ => {
-            term.clear_last_lines(1)?;
+    if let Some(dir) = steam_dir {
+        let choices = &["Yes", "No"];
+        let confirm = dialoguer::Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Do you want to add a shortcut to Steam?")
+            .default(0) // Default to "Yes"
+            .items(choices)
+            .interact()?;
+        match confirm {
+            0 => {
+                term.clear_last_lines(1)?;
+                println!("{} Adding Steam shortcut.", console::style("!").yellow());
+                gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join("Launch 7th Heaven"), dir)?;
+            }
+            _ => {
+                term.clear_last_lines(1)?;
+            }
         }
     }
 

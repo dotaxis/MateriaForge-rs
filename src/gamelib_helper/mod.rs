@@ -1,4 +1,5 @@
 use std::path::{Path, PathBuf};
+use anyhow::Result;
 
 
 #[derive(Debug)]
@@ -24,6 +25,10 @@ pub trait Game {
     fn path(&self) -> &Path;
     fn prefix(&self) -> &Path;
     fn runner(&self) -> Option<&Runner>;
+}
+
+pub trait PrefixLauncher {
+    fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()>;
 }
 
 pub mod steam_game;

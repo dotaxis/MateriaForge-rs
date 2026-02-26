@@ -1,39 +1,64 @@
 use anyhow::{bail, Context, Result};
-use materia_forge::{config_handler, logging, gamelib_helper};
+use lib_game_detector::data::SupportedLaunchers;
 use std::{env, path::Path};
+
+use materia_forge::{config_handler, gamelib_helper, logging};
+use materia_forge::gamelib_helper::{Game, PrefixLauncher};
 
 static FF7_APPID: u32 = 39140;
 static FF7_2026_APPID: u32 = 3837340;
+static FF7_GOG_APPID: u32 = 1698970154;
+
+fn run_exe<G: Game + PrefixLauncher>(game: &G, exe: std::path::PathBuf) -> Result<()> {
+    if let Some(runner) = game.runner() {
+        log::info!("Found runner: {}", runner.name);
+    } else {
+        log::info!("No runner found for game");
+    }
+
+    game.run_in_prefix(exe, None)
+        .context("Failed to launch 7th Heaven")?;
+    Ok(())
+}
 
 fn main() -> Result<()> {
     logging::init()?;
 
-    let launcher_bin = env::current_exe().expect("Failed to get binary path");
-    let launcher_dir = launcher_bin
-        .parent()
-        .expect("Failed to get binary directory");
+    let launcher_bin = env::current_exe().context("Failed to get binary path")?;
+    let launcher_dir = launcher_bin.parent().context("Failed to get binary directory")?;
     let seventh_heaven_exe = launcher_dir.join("7th Heaven.exe");
 
     if !seventh_heaven_exe.exists() {
         bail!("Couldn't find '7th Heaven.exe'!");
     }
 
-    let steam_dir_str = &config_handler::read_value("steam_dir")?;
-    let steam_dir = steamlocate::SteamDir::from_dir(Path::new(steam_dir_str))?;
-    log::info!("Steam path: {}", steam_dir.path().display());
+    let install_type = config_handler::read_value("type")
+        .unwrap_or_else(|_| "steam".to_string())
+        .to_lowercase();
 
-    let game = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone())
-    .or_else(|_| gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()))
-    .with_context(|| "Couldn't find either FF7 or FF7 2026 Edition in the Steam library.")?;
+    match install_type.as_str() {
+        "gog" => {
+            let g = lib_game_detector::get_detector()
+                .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesGOG);
+            let heroic_game = g.iter().flatten().find(|game| {
+                game.title.to_lowercase().contains("final fantasy vii")
+            }).unwrap();
+            let game = gamelib_helper::gog_game::get_game(FF7_GOG_APPID, &heroic_game)
+                .context("Configured type=gog, but GOG game was not found")?;
+            run_exe(&game, seventh_heaven_exe)?;
+        }
+        _ => {
+            let steam_dir_str = config_handler::read_value("steam_dir")
+                .context("Configured type=steam, but steam_dir is missing in TOML")?;
+            let steam_dir = steamlocate::SteamDir::from_dir(Path::new(&steam_dir_str))?;
+            log::info!("Steam path: {}", steam_dir.path().display());
 
-     if let Some(runner) = &game.runner {
-        log::info!("Found runner: {}", runner.name);
-    } else {
-        log::info!("No runner found for the game.");
+            let game = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone())
+                .or_else(|_| gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir))
+                .context("Couldn't find either FF7 or FF7 2026 Edition in Steam library")?;
+            run_exe(&game, seventh_heaven_exe)?;
+        }
     }
-
-    gamelib_helper::steam_game::launch_exe_in_prefix(seventh_heaven_exe, &game, None)
-        .context("Failed to launch 7th Heaven.")?;
 
     Ok(())
 }

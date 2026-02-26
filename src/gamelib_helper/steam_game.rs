@@ -1,4 +1,4 @@
-use crate::gamelib_helper::{Game, Runner};
+use crate::gamelib_helper::{Game, PrefixLauncher, Runner};
 use super::steam_proton;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
@@ -25,6 +25,12 @@ impl Game for SteamGame {
     fn path(&self) -> &Path { &self.path }
     fn prefix(&self) -> &Path { &self.prefix }
     fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
+}
+
+impl PrefixLauncher for SteamGame {
+    fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()> {
+        run_in_prefix(exe_to_launch, self, args)
+    }
 }
 
 pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGame> {
@@ -92,17 +98,11 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
     Ok(steam_game)
 }
 
-pub fn launch_exe_in_prefix(
+pub fn run_in_prefix(
     exe_to_launch: PathBuf,
     game: &SteamGame,
     args: Option<Vec<String>>,
 ) -> Result<()> {
-    let proton = game
-        .runner
-        .clone()
-        .with_context(|| format!("Game has no runner? {game:?}"))?;
-    log::info!("Proton bin: {}", proton.path.display());
-
     let mut command: Command;
     let proton = game
         .runner

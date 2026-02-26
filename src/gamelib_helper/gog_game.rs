@@ -1,7 +1,7 @@
-use std::{path::{Path, PathBuf}, process::Command};
+use std::{path::{Path, PathBuf}, process::{Command, Stdio}};
 use anyhow::{Context, Result};
 use serde_json::Value;
-use crate::gamelib_helper::{Game, Runner};
+use crate::gamelib_helper::{Game, PrefixLauncher, Runner};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -21,6 +21,11 @@ impl Game for GogGame {
     fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
 }
 
+impl PrefixLauncher for GogGame {
+    fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()> {
+        run_in_prefix(exe_to_launch, self, args)
+    }
+}
 
 pub fn run_in_prefix(
     exe_to_launch: PathBuf,
@@ -33,12 +38,15 @@ pub fn run_in_prefix(
         .with_context(|| format!("Game has no runner? {game:?}"))?;
     log::info!("Using runner: {}", wine.pretty_name);
     log::info!("Runner bin: {}", wine.path.display());
+    log::info!("Wine prefix: {}", game.prefix.display());
 
     let mut command: Command;
     command = Command::new(wine.path);
     command
         .env("WINEPREFIX", &game.prefix)
         .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null()) // TODO: log this properly
         .arg(&exe_to_launch);
     let args = args.unwrap_or_default();
     for arg in args {
