@@ -1,0 +1,127 @@
+name: MateriaForge
+
+run-name: 0.0.0.${{ github.run_number }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    tags:
+    - "*"
+  pull_request:
+    branches:
+    - main
+
+env:
+  _IS_BUILD_CANARY: false
+  _IS_GITHUB_RELEASE: false
+  _RELEASE_NAME: MateriaForge
+  _RELEASE_VERSION: v0
+  _BUILD_BRANCH: "${{ github.ref }}"
+  # GIT: Fix reporting from stderr to stdout
+  GIT_REDIRECT_STDERR: 2>&1
+
+jobs:
+  MateriaForge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 1440
+    strategy:
+      max-parallel: 1
+    steps:
+    - name: Set Git Config
+      run: |
+        git config --global core.autocrlf false
+        git config --global core.filemode false
+        git config --global core.longpaths true
+    - name: Checkout
+      uses: actions/checkout@v4.1.0
+    - name: Setup Rust toolchain
+      uses: dtolnay/rust-toolchain@stable
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libwayland-dev libxkbcommon-dev libegl1-mesa-dev
+    - name: Cache Cargo registry
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+        key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
+    - name: Cache Cargo build
+      uses: actions/cache@v4
+      with:
+        path: target/
+        key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-build-
+    - name: Build
+      run: ".github/workflows/build.sh"
+      shell: bash
+      env:
+        _BUILD_VERSION: "0.0.0-${{ github.run_number }}"
+        GITHUB_PACKAGES_PAT: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish PR artifacts
+      if: env._IS_GITHUB_RELEASE == 'false' && success()
+      uses: actions/upload-artifact@v4.0.0
+      with:
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+        path: ".dist/*.zip"
+    - name: VirusTotal Scan
+      id: vt-scan
+      if: env._IS_GITHUB_RELEASE == 'true' && success()
+      uses: crazy-max/ghaction-virustotal@v4
+      with:
+        vt_api_key: ${{ secrets._VT_API_KEY }}
+        files: ".dist/*.zip"
+    - name: Parse VirusTotal Results
+      id: vt-res
+      if: env._IS_GITHUB_RELEASE == 'true' && success()
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string
+        script: |
+          let ret = `${{ steps.vt-scan.outputs.analysis }}`;
+
+          ret = '- ' + ret
+          .replaceAll('.dist/','')
+          .replaceAll('=h', ': h')
+          .replaceAll(',', "\n- ");
+
+          console.log('Results:');
+          console.log(ret);
+
+          return ret;
+    - name: Publish Canary release
+      uses: ncipollo/release-action@v1
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
+      with:
+        artifacts: ".dist/*.zip"
+        allowUpdates: true
+        generateReleaseNotes: true
+        prerelease: true
+        removeArtifacts: true
+        tag: canary
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+        body: |
+          This is a canary build. Please be aware it may be prone to crashing and is NOT tested by anyone. Use this build AT YOUR OWN RISK!
+
+          🛡️ **VirusTotal analysis:**
+          ${{ steps.vt-res.outputs.result }}
+    - name: Publish Stable release
+      uses: ncipollo/release-action@v1
+      if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
+      with:
+        artifacts: ".dist/*.zip"
+        generateReleaseNotes: true
+        makeLatest: true
+        removeArtifacts: true
+        name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
+        body: |
+          🛡️ **VirusTotal analysis:**
+          ${{ steps.vt-res.outputs.result }}
