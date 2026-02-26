@@ -1348,6 +1348,35 @@ dependencies = [
 ]
 
 [[package]]
+name = "materia-forge"
+version = "0.0.0-0"
+dependencies = [
+ "anyhow",
+ "console 0.15.11",
+ "dialoguer",
+ "glob",
+ "home",
+ "indicatif 0.17.11",
+ "indicatif-log-bridge",
+ "keyvalues-parser",
+ "lib_game_detector",
+ "log",
+ "log4rs",
+ "regex",
+ "reqwest",
+ "rfd",
+ "serde",
+ "serde_json",
+ "steamlocate",
+ "sysinfo",
+ "textwrap",
+ "toml",
+ "urlencoding",
+ "users",
+ "xdg",
+]
+
+[[package]]
 name = "memchr"
 version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2187,35 +2216,6 @@ dependencies = [
  "ryu",
  "serde",
  "unsafe-libyaml",
-]
-
-[[package]]
-name = "seventh-deck"
-version = "0.0.0"
-dependencies = [
- "anyhow",
- "console 0.15.11",
- "dialoguer",
- "glob",
- "home",
- "indicatif 0.17.11",
- "indicatif-log-bridge",
- "keyvalues-parser",
- "lib_game_detector",
- "log",
- "log4rs",
- "regex",
- "reqwest",
- "rfd",
- "serde",
- "serde_json",
- "steamlocate",
- "sysinfo",
- "textwrap",
- "toml",
- "urlencoding",
- "users",
- "xdg",
 ]
 
 [[package]]
