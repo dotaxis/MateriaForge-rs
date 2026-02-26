@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use seventh_deck::{config_handler, logging, steam_helper};
+use materia_forge::{config_handler, logging, steam_helper};
 use std::{env, path::Path};
 
 static FF7_APPID: u32 = 39140;

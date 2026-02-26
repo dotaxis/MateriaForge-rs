@@ -3,7 +3,7 @@ use console::Style;
 use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
-use seventh_deck::{
+use materia_forge::{
     config_handler, logging, resource_handler,
     steam_helper::{self, game::SteamGame},
     gog_helper,
