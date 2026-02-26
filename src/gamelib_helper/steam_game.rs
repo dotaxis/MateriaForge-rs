@@ -1,4 +1,5 @@
-use super::proton::{self, Runner};
+use crate::gamelib_helper::{Game, Runner};
+use super::steam_proton;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::{
@@ -16,6 +17,14 @@ pub struct SteamGame {
     pub prefix: PathBuf,
     pub client_path: PathBuf,
     pub runner: Option<Runner>,
+}
+
+impl Game for SteamGame {
+    fn app_id(&self) -> u32 { self.app_id }
+    fn name(&self) -> &str { &self.name }
+    fn path(&self) -> &Path { &self.path }
+    fn prefix(&self) -> &Path { &self.prefix }
+    fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
 }
 
 pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGame> {
@@ -36,7 +45,7 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         .and_then(|mapping| mapping.get(&app_id).cloned())
         .and_then(|tool| {
             let tool_name = tool.name.clone()?;
-            let proton_versions = proton::find_all_versions(steam_dir.clone()).ok()?;
+            let proton_versions = steam_proton::find_all_versions(steam_dir.clone()).ok()?;
             proton_versions
                 .into_iter()
                 .find(|runner| runner.name == tool_name)
@@ -46,8 +55,8 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
                 "No runner configured for app {}, setting highest version",
                 app_id
             );
-            let proton_versions = proton::find_all_versions(steam_dir.clone()).ok()?;
-            let highest_runner = proton::find_highest_version(&proton_versions)?;
+            let proton_versions = steam_proton::find_all_versions(steam_dir.clone()).ok()?;
+            let highest_runner = steam_proton::find_highest_version(&proton_versions)?;
 
             let temp_game = SteamGame {
                 app_id,

@@ -1,7 +1,7 @@
-use std::{path::PathBuf, process::{Command, Stdio}};
+use std::{path::{Path, PathBuf}, process::{Command, Stdio}};
 use anyhow::{Context, Result};
 use serde_json::Value;
-use lib_game_detector::data::Game;
+use crate::gamelib_helper::{Game, Runner};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -13,13 +13,14 @@ pub struct GogGame {
     pub runner: Option<Runner>,
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct Runner {
-    pub name: String,
-    pub runner_type: String,
-    pub path: PathBuf,
+impl Game for GogGame {
+    fn app_id(&self) -> u32 { self.app_id }
+    fn name(&self) -> &str { &self.name }
+    fn path(&self) -> &Path { &self.path }
+    fn prefix(&self) -> &Path { &self.prefix }
+    fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
 }
+
 
 pub fn run_in_prefix(
     exe_to_launch: PathBuf,
@@ -30,7 +31,8 @@ pub fn run_in_prefix(
         .runner
         .clone()
         .with_context(|| format!("Game has no runner? {game:?}"))?;
-    log::info!("Proton bin: {}", wine.path.display());
+    log::info!("Using runner: {}", wine.pretty_name);
+    log::info!("Runner bin: {}", wine.path.display());
 
     let mut command: Command;
     command = Command::new(wine.path);
@@ -55,7 +57,7 @@ pub fn run_in_prefix(
     Ok(())
 }
 
-pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
+pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<GogGame> {
     let heroic_config_path = get_heroic_config_path();
     let game_json_path = heroic_config_path.join("GamesConfig").join("{}.json}").with_file_name(app_id.to_string() + ".json");
     let game_json_string = std::fs::read_to_string(game_json_path).context("Failed to read GOG game JSON")?;
@@ -68,12 +70,13 @@ pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
     // println!("GOG Game JSON: {:#?}", json);
 
     let mut runner = Runner {
-        name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
-        runner_type: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
+        name: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
+        pretty_name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
         path: wine_version.get("bin").and_then(Value::as_str).map(PathBuf::from).context("GOG game JSON missing wineVersion bin")?,
+        runtime: None,
     };
 
-    if runner.runner_type == "proton" {
+    if runner.name == "proton" {
         runner.path = runner.path.parent().unwrap().join("files/bin/wine");
     }
 

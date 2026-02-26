@@ -11,9 +11,6 @@ use std::{
 use sysinfo::System;
 use urlencoding::encode;
 
-pub mod game;
-pub mod proton;
-
 pub fn get_library() -> Result<steamlocate::SteamDir> {
     let home_dir = home::home_dir().expect("Couldn't get $HOME?");
     let possible_libraries = vec![

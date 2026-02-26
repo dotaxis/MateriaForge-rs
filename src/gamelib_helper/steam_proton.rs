@@ -1,20 +1,7 @@
 use std::{fs, path::PathBuf};
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct Runtime {
-    pub name: String,
-    pub pretty_name: String,
-    pub path: PathBuf,
-}
-#[derive(Debug)]
-#[derive(Clone)]
-pub struct Runner {
-    pub name: String,
-    pub pretty_name: String,
-    pub path: PathBuf,
-    pub runtime: Option<Runtime>,
-}
 use anyhow::{bail, Context, Result};
+
+use crate::gamelib_helper::{Runner, Runtime};
 
 fn get_runtime_appid(runner: &Runner) -> Result<u32> {
     let manifest_path = runner.path.parent()

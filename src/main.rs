@@ -4,9 +4,7 @@ use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
 use materia_forge::{
-    config_handler, logging, resource_handler,
-    steam_helper::{self, game::SteamGame},
-    gog_helper,
+    config_handler, gamelib_helper::{self, gog_game, steam_game::SteamGame}, logging, resource_handler
 };
 use std::{
     collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
@@ -173,12 +171,12 @@ fn draw_header() {
 fn seventh_heaven_steam() -> Result<()> {
     let mut config = HashMap::new();
 
-    let steam_dir = steam_helper::get_library()?;
+    let steam_dir = gamelib_helper::steam_lib::get_library()?;
     config.insert("steam_dir", steam_dir.path().display().to_string());
 
     let (original, remaster) = with_spinner("Finding FF7...", "Done!", || {
-        let original = steam_helper::game::get_game(FF7_APPID, steam_dir.clone()).ok();
-        let remaster = steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
+        let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
+        let remaster = gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
         if original.is_none() && remaster.is_none() {
             anyhow::bail!("Couldn't find any supported Steam version of FF7");
         }
@@ -256,7 +254,7 @@ fn seventh_heaven_steam() -> Result<()> {
 }
 
 fn seventh_heaven_gog(game: &lib_game_detector::data::Game) -> Result<()> {
-    let gog_game = gog_helper::get_game(FF7_GOG_APPID, game).context("Failed to get GOG game details")?;
+    let gog_game = gog_game::get_game(FF7_GOG_APPID, game).context("Failed to get GOG game details")?;
     println!("GOG Game details: {:#?}", gog_game);
     println!("Runner details: {:#?}", gog_game.runner);
     Ok(())
@@ -397,7 +395,7 @@ fn install_7th(
 
     // let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
-    steam_helper::game::launch_exe_in_prefix(exe_path, game, Some(args))
+    gamelib_helper::steam_game::launch_exe_in_prefix(exe_path, game, Some(args))
         .context("Couldn't run 7th Heaven installer")?;
 
     let current_bin = env::current_exe().context("Failed to get binary path")?;
@@ -586,7 +584,7 @@ fn create_shortcuts(install_path: &Path, steam_dir: SteamDir) -> Result<()> {
         0 => {
             term.clear_last_lines(1)?;
             println!("{} Adding Steam shortcut.", console::style("!").yellow());
-            steam_helper::add_nonsteam_game(&install_path.join("Launch 7th Heaven"), steam_dir)?;
+            gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join("Launch 7th Heaven"), steam_dir)?;
         }
         _ => {
             term.clear_last_lines(1)?;

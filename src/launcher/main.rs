@@ -1,5 +1,5 @@
 use anyhow::{bail, Context, Result};
-use materia_forge::{config_handler, logging, steam_helper};
+use materia_forge::{config_handler, logging, gamelib_helper};
 use std::{env, path::Path};
 
 static FF7_APPID: u32 = 39140;
@@ -22,8 +22,8 @@ fn main() -> Result<()> {
     let steam_dir = steamlocate::SteamDir::from_dir(Path::new(steam_dir_str))?;
     log::info!("Steam path: {}", steam_dir.path().display());
 
-    let game = steam_helper::game::get_game(FF7_APPID, steam_dir.clone())
-    .or_else(|_| steam_helper::game::get_game(FF7_2026_APPID, steam_dir.clone()))
+    let game = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone())
+    .or_else(|_| gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()))
     .with_context(|| "Couldn't find either FF7 or FF7 2026 Edition in the Steam library.")?;
 
      if let Some(runner) = &game.runner {
@@ -32,7 +32,7 @@ fn main() -> Result<()> {
         log::info!("No runner found for the game.");
     }
 
-    steam_helper::game::launch_exe_in_prefix(seventh_heaven_exe, &game, None)
+    gamelib_helper::steam_game::launch_exe_in_prefix(seventh_heaven_exe, &game, None)
         .context("Failed to launch 7th Heaven.")?;
 
     Ok(())
