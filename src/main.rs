@@ -56,18 +56,18 @@ fn detect_versions() -> Result<()> {
                 .interact()?;
 
             match selection {
-                0 => seventh_heaven_steam(),
-                1 => seventh_heaven_gog(gog),
+                0 => seventh_heaven_steam()?,
+                1 => seventh_heaven_gog(gog)?,
                 _ => unreachable!(),
             }
         }
         (None, Some(gog)) => {
             log::info!("Heroic Games Launcher install detected!");
-            seventh_heaven_gog(gog)
+            seventh_heaven_gog(gog)?
         }
         (Some(_), None) => {
             log::info!("Steam install detected!");
-            seventh_heaven_steam()
+            seventh_heaven_steam()?
         }
         (None, None) => {
             anyhow::bail!("Couldn't find any supported versions of FF7!");
@@ -194,8 +194,6 @@ fn seventh_heaven_steam() -> Result<()> {
 
     config_handler::write(config).context("Failed to write config")?;
 
-    with_spinner("Killing Steam...", "Done!", steam_helper::kill_steam)?;
-
     // TODO: "Clean install"
     // Wipe common files
     // Verify game files
@@ -204,10 +202,6 @@ fn seventh_heaven_steam() -> Result<()> {
     // Wipe prefix
     // Rebuild prefix
     // Restore saves
-
-    // with_spinner("Setting Launch Options...", "Done!", || {
-    //     steam_helper::game::set_launch_options(&game).context("Failed to set launch options")
-    // })?;
 
     let install_path = get_install_path()?;
     with_spinner("Installing 7th Heaven...", "Done!", || {
@@ -350,6 +344,18 @@ fn install_7th(
     install_path: &Path,
     log_file: &str,
 ) -> Result<()> {
+    let exe_path = exe_path
+        .canonicalize()
+        .with_context(|| format!("Installer not found at {:?}", exe_path))?;
+
+    if let Some(runner) = &game.runner {
+        log::info!("Using runner: {} ({})", runner.pretty_name, runner.name);
+    } else {
+        log::warn!("No runner set on detected game");
+    }
+    log::info!("Installer path: {}", exe_path.display());
+    log::info!("Game prefix: {}", game.prefix.display());
+
     let args: Vec<String> = vec![
         "/VERYSILENT".to_string(),
         format!(

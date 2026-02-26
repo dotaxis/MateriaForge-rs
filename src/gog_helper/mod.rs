@@ -47,7 +47,7 @@ pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
 }
 
 /// Get path to the Heroic Games Launcher config dir, falling back to the flatpak version if necessary
-fn get_heroic_config_path() -> (PathBuf) {
+fn get_heroic_config_path() -> PathBuf {
     // let mut is_using_flatpak = false;
 
     let path_home = home::home_dir().expect("Failed to get home directory");

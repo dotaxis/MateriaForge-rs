@@ -1,6 +1,5 @@
 use super::proton::{self, Runner};
 use anyhow::{bail, Context, Result};
-use glob::glob;
 use regex::Regex;
 use std::{
     fs::{self, metadata},
@@ -33,8 +32,8 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         .join(format!("steamapps/compatdata/{app_id}/pfx"));
     let runner = steam_dir
         .compat_tool_mapping()
-        .with_context(|| format!("Couldn't get runner for {app_id}"))?
-        .get(&app_id)
+        .ok()
+        .and_then(|mapping| mapping.get(&app_id).cloned())
         .and_then(|tool| {
             let tool_name = tool.name.clone()?;
             let proton_versions = proton::find_all_versions(steam_dir.clone()).ok()?;
@@ -96,51 +95,37 @@ pub fn launch_exe_in_prefix(
     log::info!("Proton bin: {}", proton.path.display());
 
     let mut command: Command;
-    if let Some(runtime) = proton.runtime {
-        let runtime_path = runtime.path.join("run");
-        log::info!("{} path: {runtime_path:?}", runtime.name);
-        command = Command::new(runtime_path);
-        command
-            .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
-            .env(
-                "STEAM_COMPAT_DATA_PATH",
-                game.prefix
-                    .parent()
-                    .context("Couldn't get parent of prefix directory")?,
-            )
-            .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null()) // TODO: log this properly
-            .arg("--")
-            .arg(proton.path)
-            .arg("waitforexitandrun")
-            .arg(&exe_to_launch);
-        let args = args.unwrap_or_default();
-        for arg in args {
-            log::info!("launch_exe_in_prefix arg: {arg}");
-            command.arg(arg);
-        }
-    } else {
-        // no runtime
-        command = Command::new(proton.path);
-        command
-            .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
-            .env(
-                "STEAM_COMPAT_DATA_PATH",
-                game.prefix
-                    .parent()
-                    .context("Couldn't get parent of prefix directory")?,
-            )
-            .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
-            .stdout(Stdio::null())
-            .stderr(Stdio::null()) // TODO: log this properly
-            .arg("waitforexitandrun")
-            .arg(&exe_to_launch);
-        let args = args.unwrap_or_default();
-        for arg in args {
-            log::info!("launch_exe_in_prefix arg: {arg}");
-            command.arg(arg);
-        }
+    let proton = game
+        .runner
+        .clone()
+        .with_context(|| format!("Game has no runner? {game:?}"))?;
+    log::info!("Proton bin: {}", proton.path.display());
+    let runtime = proton
+        .runtime
+        .clone()
+        .with_context(|| format!("Runner has no runtime? {proton:?}"))?;
+    let runtime_path = runtime.path.join("run");
+    log::info!("{} path: {runtime_path:?}", runtime.name);
+    command = Command::new(runtime_path);
+    command
+        .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
+        .env(
+            "STEAM_COMPAT_DATA_PATH",
+            game.prefix
+                .parent()
+                .context("Couldn't get parent of prefix directory")?,
+        )
+        .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null()) // TODO: log this properly
+        .arg("--")
+        .arg(proton.path)
+        .arg("waitforexitandrun")
+        .arg(&exe_to_launch);
+    let args = args.unwrap_or_default();
+    for arg in args {
+        log::info!("launch_exe_in_prefix arg: {arg}");
+        command.arg(arg);
     }
     command.spawn()?.wait()?;
     log::info!(
@@ -175,46 +160,30 @@ pub fn wipe_prefix(game: &SteamGame) -> Result<()> {
     Ok(())
 }
 
-pub fn set_launch_options(game: &SteamGame) -> Result<()> {
-    // Set launch options for Steam injection
-    let re = Regex::new(&format!(r#""{}"\s*\{{"#, &game.app_id))?;
-    let replacement = format!(
-        r#""{}"
-					{{
-						"LaunchOptions"		"echo \"%command%\" | sed 's/waitforexitandrun/run/g' | env WINEDLLOVERRIDES=\"dinput=n,b\" sh""#,
-        &game.app_id
-    );
-
-    for entry in glob(&format!(
-        "{}/userdata/*/config/localconfig.vdf",
-        &game.client_path.display()
-    ))? {
-        let path = entry?;
-        log::info!("localconfig.vdf found at {path:?}");
-        let content = fs::read_to_string(&path)?;
-        fs::write(&path, re.replace(&content, &replacement).as_bytes())
-            .with_context(|| format!("Couldn't write to {path:?}"))?;
-    }
-    log::info!("Successfully set launch options for {}", game.name);
-    Ok(())
-}
-
 pub fn set_runner(game: &SteamGame, runner: &str) -> Result<()> {
     let re = Regex::new(r#""CompatToolMapping"\s*\{"#)?;
     let replacement = format!(
         r#""CompatToolMapping"
-				{{
-					"{}"
-					{{
-						"name"		"{}"
-						"config"		""
-						"priority"		"250"
-					}}"#,
+                {{
+                    "{}"
+                    {{
+                        "name"		"{}"
+                        "config"		""
+                        "priority"		"250"
+                    }}
+"#,
         &game.app_id, runner
     );
+
+    let remove_re = Regex::new(&format!(
+        r#""{}"[^{{]*\{{[^}}]*"name"[^}}]*\}}"#,
+        &game.app_id
+    ))?;
+
     let path = &game.client_path.join("config/config.vdf");
     let content = fs::read_to_string(path)?;
-    fs::write(path, re.replace(&content, replacement).as_bytes())
+    let content = remove_re.replace(&content, "").to_string();
+    fs::write(path, re.replace(&content, &replacement).as_bytes())
         .with_context(|| format!("Couldn't write to {path:?}"))?;
     log::info!(
         "Succcessfully set runner for {} to {}",
