@@ -1,9 +1,10 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, process::{Command, Stdio}};
 use anyhow::{Context, Result};
 use serde_json::Value;
 use lib_game_detector::data::Game;
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct GogGame {
     pub app_id: u32,
     pub name: String,
@@ -13,10 +14,45 @@ pub struct GogGame {
 }
 
 #[derive(Debug)]
+#[derive(Clone)]
 pub struct Runner {
     pub name: String,
     pub runner_type: String,
     pub path: PathBuf,
+}
+
+pub fn run_in_prefix(
+    exe_to_launch: PathBuf,
+    game: &GogGame,
+    args: Option<Vec<String>>,
+) -> Result<()> {
+    let wine = game
+        .runner
+        .clone()
+        .with_context(|| format!("Game has no runner? {game:?}"))?;
+    log::info!("Proton bin: {}", wine.path.display());
+
+    let mut command: Command;
+    command = Command::new(wine.path);
+    command
+        .env("WINEPREFIX", &game.prefix)
+        .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+        .arg(&exe_to_launch);
+    let args = args.unwrap_or_default();
+    for arg in args {
+        log::info!("run_in_prefix arg: {arg}");
+        command.arg(arg);
+    }
+    command.spawn()?.wait()?;
+    log::info!(
+        "Launched {}",
+        exe_to_launch
+            .file_name()
+            .context("Couldn't get file_name")?
+            .to_string_lossy()
+    );
+
+    Ok(())
 }
 
 pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
@@ -31,11 +67,15 @@ pub fn get_game(app_id: u32, game: &Game) -> Result<GogGame> {
 
     // println!("GOG Game JSON: {:#?}", json);
 
-    let runner = Runner {
+    let mut runner = Runner {
         name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
         runner_type: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
         path: wine_version.get("bin").and_then(Value::as_str).map(PathBuf::from).context("GOG game JSON missing wineVersion bin")?,
     };
+
+    if runner.runner_type == "proton" {
+        runner.path = runner.path.parent().unwrap().join("files/bin/wine");
+    }
 
     Ok(GogGame {
         app_id,
