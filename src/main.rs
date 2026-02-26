@@ -309,6 +309,7 @@ fn get_install_path() -> Result<PathBuf> {
             .pick_folder();
 
         if let Some(path) = install_path {
+            let path = path.join("7th Heaven");
             let choices = &["Yes", "No"];
             let confirm = dialoguer::Select::with_theme(&ColorfulTheme::default())
                 .with_prompt(format!(
@@ -322,6 +323,8 @@ fn get_install_path() -> Result<PathBuf> {
             match confirm {
                 0 => {
                     term.clear_last_lines(2)?;
+                    std::fs::create_dir_all(&path)
+                        .with_context(|| format!("Couldn't create directory '{}'", path.display()))?;
                     println!(
                         "{} Installing to '{}'",
                         console::style("!").yellow(),
