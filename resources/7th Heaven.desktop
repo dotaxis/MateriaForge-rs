@@ -1,8 +1,8 @@
 #!/usr/bin/env xdg-open
 [Desktop Entry]
-Name=7th Heaven
+Name=7th Heaven (VER)
 Icon=7th-heaven
-Exec="INSTALL_PATH/Launch 7th Heaven"
+Exec="INSTALL_PATH/Launch 7th Heaven (VER)"
 Path=INSTALL_PATH
 Categories=Game;
 Terminal=false

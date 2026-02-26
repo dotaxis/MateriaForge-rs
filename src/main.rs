@@ -185,7 +185,7 @@ fn seventh_heaven_steam() -> Result<()> {
 
     let game = match (original, remaster) {
         (Some(og), Some(rm)) => {
-            let choices = &[&og.name, &rm.name];
+            let choices = &[&og.name, &format!("{} (2026)", rm.name)];
             let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Multiple Steam installations of FF7 were detected. Which one do you want to patch?")
                 .default(0)
@@ -239,7 +239,7 @@ fn seventh_heaven_steam() -> Result<()> {
 
     // TODO: steamOS control scheme + auto-config mod
 
-    create_shortcuts(&install_path, Some(steam_dir)).context("Failed to create shortcuts")?;
+    create_shortcuts(&install_path, Some(steam_dir), game.app_id).context("Failed to create shortcuts")?;
 
     println!(
         "{} 7th Heaven successfully installed to '{}'",
@@ -294,7 +294,7 @@ fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> 
 
     // TODO: steamOS control scheme + auto-config mod
 
-    create_shortcuts(&install_path, None).context("Failed to create shortcuts")?;
+    create_shortcuts(&install_path, None, game.app_id).context("Failed to create shortcuts")?;
 
     println!(
         "{} 7th Heaven successfully installed to '{}'",
@@ -462,7 +462,17 @@ where
     } else {
         "launcher"
     };
-    std::fs::copy(launcher_path, install_path.join("Launch 7th Heaven"))
+
+    let shortcut_identifier = match game.app_id() {
+        FF7_APPID => "(2013)",
+        FF7_2026_APPID => "(2026)",
+        FF7_GOG_APPID => "(GOG)",
+        _ => "(Unknown)"
+    };
+
+
+
+    std::fs::copy(launcher_path, install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)))
         .expect("Failed to copy launcher to install_path");
 
     Ok(())
@@ -483,17 +493,17 @@ fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
     })?;
 
     // Send Default.xml to install path
-    let default_xml = resource_handler::as_str(
-        "Default.xml".to_string(),
-        install_path.join("7thWorkshop/profiles"),
-        resource_handler::DEFAULT_XML,
-    );
-    std::fs::write(&default_xml.destination, default_xml.contents).with_context(|| {
-        format!(
-            "Couldn't write {} to {:?}",
-            default_xml.name, default_xml.destination
-        )
-    })?;
+    // let default_xml = resource_handler::as_str(
+    //     "Default.xml".to_string(),
+    //     install_path.join("7thWorkshop/profiles"),
+    //     resource_handler::DEFAULT_XML,
+    // );
+    // std::fs::write(&default_xml.destination, default_xml.contents).with_context(|| {
+    //     format!(
+    //         "Couldn't write {} to {:?}",
+    //         default_xml.name, default_xml.destination
+    //     )
+    // })?;
 
     // Patch settings.xml and send to install_path
     let mut settings_xml = resource_handler::as_str(
@@ -502,6 +512,12 @@ fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
         resource_handler::SETTINGS_XML,
     );
 
+    let ff7_version = match game.app_id() {
+        FF7_APPID => "Steam",
+        FF7_2026_APPID => "SteamReRelease",
+        FF7_GOG_APPID => "GOG",
+        _ => "Unknown"
+    };
     let library_location = &format!(
         "Z:{}",
         install_path
@@ -535,6 +551,7 @@ fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
         .contents
         .replace("LIBRARY_LOCATION", library_location)
         .replace("FF7_EXE", ff7_exe_path)
+        .replace("FF7_VERSION", ff7_version)
         .replace("UPDATE_CHANNEL", update_channel);
 
     std::fs::write(&settings_xml.destination, settings_xml.contents)
@@ -552,11 +569,19 @@ fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
     Ok(())
 }
 
-fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir>) -> Result<()> {
+fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir>, app_id: u32) -> Result<()> {
     // App launcher shortcut
     let applications_dir = xdg::BaseDirectories::new().get_data_home().context("Couldn't get xdg_data_home")?.join("applications");
+
+    let shortcut_identifier = match app_id {
+        FF7_APPID => "(2013)",
+        FF7_2026_APPID => "(2026)",
+        FF7_GOG_APPID => "(GOG)",
+        _ => "(Unknown)"
+    };
+
     let mut shortcut_file = resource_handler::as_str(
-        "7th Heaven.desktop".to_string(),
+        format!("7th Heaven {}.desktop", shortcut_identifier),
         applications_dir,
         resource_handler::SHORTCUT_FILE,
     );
@@ -564,6 +589,10 @@ fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir
     shortcut_file.contents = shortcut_file
         .contents
         .replace("INSTALL_PATH", &install_path.to_string_lossy());
+
+    shortcut_file.contents = shortcut_file
+        .contents
+        .replace("(VER)", &shortcut_identifier);
 
     std::fs::write(&shortcut_file.destination, &shortcut_file.contents).with_context(|| {
         format!(

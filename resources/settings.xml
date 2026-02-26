@@ -30,7 +30,7 @@
   </Subscriptions>
   <LibraryLocation>LIBRARY_LOCATION</LibraryLocation>
   <FF7Exe>FF7_EXE</FF7Exe>
-  <FF7InstalledVersion>Steam</FF7InstalledVersion>
+  <FF7InstalledVersion>FF7_VERSION</FF7InstalledVersion>
   <FFNxUpdateChannel>UPDATE_CHANNEL</FFNxUpdateChannel>
   <AppUpdateChannel>UPDATE_CHANNEL</AppUpdateChannel>
   <Options>
