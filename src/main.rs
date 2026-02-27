@@ -669,7 +669,7 @@ fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir
             0 => {
                 term.clear_last_lines(1)?;
                 println!("{} Adding Steam shortcut.", console::style("!").yellow());
-                gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join("Launch 7th Heaven"), dir)?;
+                gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)), dir)?;
             }
             _ => {
                 term.clear_last_lines(1)?;
