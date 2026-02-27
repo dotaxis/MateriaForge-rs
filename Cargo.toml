@@ -3,6 +3,7 @@ name = "materia-forge"
 version = "0.0.0-0"
 edition = "2021"
 default-run = "MateriaForge"
+license = "GPL-3.0-only"
 
 [[bin]]
 name = "MateriaForge"
