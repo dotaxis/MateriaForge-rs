@@ -41,7 +41,7 @@ pub fn run_in_prefix(
     log::info!("Wine prefix: {}", game.prefix.display());
 
     let mut command: Command;
-    command = Command::new(wine.path);
+    command = Command::new(&wine.path);
     match wine.name.as_str() {
         "wine" => {
             command
@@ -53,6 +53,9 @@ pub fn run_in_prefix(
                 .arg(&exe_to_launch);
         }
         "proton" => {
+            if !wine.pretty_name.contains("GE") {
+                panic!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
+            }
             command
                 .env("WINEDEBUG", "-all")
                 .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
