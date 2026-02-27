@@ -206,12 +206,19 @@ fn seventh_heaven_steam() -> Result<()> {
         (None, None) => unreachable!(),
     };
 
+    let update_channel = match game.app_id()  {
+        // FF7_APPID => "Stable",
+        // FF7_2026_APPID => "Canary",
+        // FF7_GOG_APPID => "Canary",
+        _ => "Canary"
+    };
+
     let cache_dir = home::home_dir()
         .context("Couldn't find $HOME?")?
         .join(".cache");
 
-    let prerelease = game.app_id == FF7_2026_APPID;
-    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, prerelease)
+    let use_canary = update_channel == "Canary";
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, use_canary)
         .expect("Failed to download 7th Heaven!");
 
     if let Some(runner) = &game.runner {
@@ -236,7 +243,7 @@ fn seventh_heaven_steam() -> Result<()> {
     })?;
 
     with_spinner("Patching installation...", "Done!", || {
-        patch_install(&install_path, &game)
+        patch_install(&install_path, &game, update_channel)
     })?;
 
     // TODO: steamOS control scheme + auto-config mod
@@ -259,6 +266,13 @@ fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> 
     let game = gog_game::get_game(FF7_GOG_APPID, found_game).context("Failed to get GOG game details")?;
     log::info!("GOG Game details: {:#?}", game);
 
+    let update_channel = match game.app_id()  {
+        // FF7_APPID => "Stable",
+        // FF7_2026_APPID => "Canary",
+        // FF7_GOG_APPID => "Canary",
+        _ => "Canary"
+    };
+
     let mut config = HashMap::new();
     config.insert("type", "gog".to_string());
 
@@ -266,7 +280,8 @@ fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> 
         .context("Couldn't find $HOME?")?
         .join(".cache");
 
-    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, true)
+    let use_canary = update_channel == "Canary";
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, use_canary)
         .expect("Failed to download 7th Heaven!");
 
     if let Some(runner) = &game.runner {
@@ -291,7 +306,7 @@ fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> 
     })?;
 
     with_spinner("Patching installation...", "Done!", || {
-        patch_install(&install_path, &game)
+        patch_install(&install_path, &game, update_channel)
     })?;
 
     // TODO: steamOS control scheme + auto-config mod
@@ -480,7 +495,7 @@ where
     Ok(())
 }
 
-fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
+fn patch_install<T: Game>(install_path: &Path, game: &T, update_channel: &str) -> Result<()> {
     // Send timeout.exe to system32
     let timeout_exe = resource_handler::as_bytes(
         "timeout.exe".to_string(),
@@ -541,13 +556,6 @@ fn patch_install<T: Game>(install_path: &Path, game: &T) -> Result<()> {
             .to_string_lossy()
             .replace("/", "\\")
     );
-    let update_channel = match game.app_id()  {
-        FF7_APPID => "Stable",
-        FF7_2026_APPID => "Canary",
-        FF7_GOG_APPID => "Canary",
-        _ => "Canary"
-    };
-
 
     settings_xml.contents = settings_xml
         .contents
