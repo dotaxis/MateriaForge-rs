@@ -42,13 +42,29 @@ pub fn run_in_prefix(
 
     let mut command: Command;
     command = Command::new(wine.path);
-    command
-        .env("WINEDEBUG", "-all")
-        .env("WINEPREFIX", &game.prefix)
-        .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .arg(&exe_to_launch);
+    match wine.name.as_str() {
+        "wine" => {
+            command
+                .env("WINEDEBUG", "-all")
+                .env("WINEPREFIX", &game.prefix)
+                .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .arg(&exe_to_launch);
+        }
+        "proton" => {
+            command
+                .env("WINEDEBUG", "-all")
+                .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
+                .env("SteamGameId", "0")
+                .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+                .stdout(Stdio::piped())
+                .stderr(Stdio::piped())
+                .arg("runinprefix")
+                .arg(&exe_to_launch);
+        }
+        _ => panic!("Unknown runner type: {}", wine.name),
+    }
     let args = args.unwrap_or_default();
     for arg in args {
         log::info!("run_in_prefix arg: {arg}");
@@ -102,12 +118,12 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
 
     let root: Value = serde_json::from_str(&game_json_string).context("Failed to parse GOG game JSON")?;
     let json = root.get(app_id.to_string()).context("GOG game JSON missing app ID key")?;
-    let prefix = json.get("winePrefix").and_then(|v| v.as_str()).map(PathBuf::from).context("GOG game JSON missing winePrefix")?;
+    let mut prefix = json.get("winePrefix").and_then(|v| v.as_str()).map(PathBuf::from).context("GOG game JSON missing winePrefix")?;
     let wine_version = json.get("wineVersion").and_then(Value::as_object).context("GOG game JSON missing wineVersion")?;
 
     // println!("GOG Game JSON: {:#?}", json);
 
-    let mut runner = Runner {
+    let runner = Runner {
         name: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
         pretty_name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
         path: wine_version.get("bin").and_then(Value::as_str).map(PathBuf::from).context("GOG game JSON missing wineVersion bin")?,
@@ -115,7 +131,8 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
     };
 
     if runner.name == "proton" {
-        runner.path = runner.path.parent().unwrap().join("files/bin/wine");
+        // runner.path = runner.path.parent().unwrap().join("files/bin/wine");
+        prefix = prefix.join("pfx");
     }
 
     Ok(GogGame {
