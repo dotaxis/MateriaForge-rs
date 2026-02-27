@@ -3,9 +3,7 @@ use super::steam_proton;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::{
-    fs::{self, metadata},
-    path::{Path, PathBuf},
-    process::{Command, Stdio},
+    fs::{self, metadata}, io::{BufRead, BufReader}, path::{Path, PathBuf}, process::{Command, Stdio}, thread
 };
 
 #[derive(Debug)]
@@ -136,7 +134,7 @@ pub fn run_in_prefix(
         log::info!("launch_exe_in_prefix arg: {arg}");
         command.arg(arg);
     }
-    command.spawn()?.wait()?;
+    let mut child = command.spawn()?;
     log::info!(
         "Launched {}",
         exe_to_launch
@@ -145,7 +143,36 @@ pub fn run_in_prefix(
             .to_string_lossy()
     );
 
-    Ok(())
+    let stdout = child.stdout.take().context("Failed to capture stdout")?;
+    let stderr = child.stderr.take().context("Failed to capture stderr")?;
+
+    let stdout_thread = thread::spawn(move || {
+        let reader = BufReader::new(stdout).lines();
+        for line in reader {
+            if let Ok(line) = line {
+                log::info!("[wine] {line}");
+            }
+        }
+    });
+    let stderr_thread = thread::spawn(move || {
+        let reader = BufReader::new(stderr).lines();
+        for line in reader {
+            if let Ok(line) = line {
+                log::warn!("[wine] {line}");
+            }
+        }
+    });
+
+    let status = child.wait()?;
+
+    stdout_thread.join().expect("Failed to join stdout thread");
+    stderr_thread.join().expect("Failed to join stderr thread");
+
+    if status.success() {
+        Ok(log::info!("Process exited successfully"))
+    } else {
+        panic!("Process exited with an error: {status}");
+    }
 }
 
 pub fn wipe_prefix(game: &SteamGame) -> Result<()> {
