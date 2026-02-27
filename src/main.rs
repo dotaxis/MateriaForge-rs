@@ -255,8 +255,8 @@ fn seventh_heaven_steam() -> Result<()> {
 
 fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> {
     let game = gog_game::get_game(FF7_GOG_APPID, found_game).context("Failed to get GOG game details")?;
-    println!("GOG Game details: {:#?}", game);
-    
+    log::info!("GOG Game details: {:#?}", game);
+
     let mut config = HashMap::new();
     config.insert("type", "gog".to_string());
 
