@@ -102,17 +102,20 @@ pub fn run_in_prefix(
     args: Option<Vec<String>>,
 ) -> Result<()> {
     let mut command: Command;
+
     let proton = game
         .runner
         .clone()
         .with_context(|| format!("Game has no runner? {game:?}"))?;
     log::info!("Proton bin: {}", proton.path.display());
+
     let runtime = proton
         .runtime
         .clone()
         .with_context(|| format!("Runner has no runtime? {proton:?}"))?;
     let runtime_path = runtime.path.join("run");
     log::info!("{} path: {runtime_path:?}", runtime.name);
+
     command = Command::new(runtime_path);
     command
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
@@ -123,8 +126,8 @@ pub fn run_in_prefix(
                 .context("Couldn't get parent of prefix directory")?,
         )
         .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null()) // TODO: log this properly
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .arg("--")
         .arg(proton.path)
         .arg("waitforexitandrun")
@@ -134,6 +137,7 @@ pub fn run_in_prefix(
         log::info!("launch_exe_in_prefix arg: {arg}");
         command.arg(arg);
     }
+
     let mut child = command.spawn()?;
     log::info!(
         "Launched {}",
