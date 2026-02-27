@@ -109,20 +109,6 @@ fn draw_header() {
 
     // Print the bottom border
     println!("{}", border_style.apply_to(bottom_border));
-
-    let choices = &["Yes", "No"];
-    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Do you want to continue?")
-        .default(0) // Default to "Yes"
-        .items(choices)
-        .interact()
-        .unwrap();
-
-    if selection == 1 {
-        // No
-        println!("Understood. Exiting.");
-        std::process::exit(0);
-    }
 }
 
 fn detect_versions() -> Result<()> {
@@ -206,6 +192,20 @@ fn seventh_heaven_steam() -> Result<()> {
         (None, None) => unreachable!(),
     };
 
+    let choices = &["Yes", "No"];
+    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Do you want to continue installing 7th Heaven?")
+        .default(0) // Default to "Yes"
+        .items(choices)
+        .interact()
+        .unwrap();
+
+    if selection == 1 {
+        // No
+        println!("Understood. Exiting.");
+        std::process::exit(0);
+    }
+
     let update_channel = match game.app_id()  {
         // FF7_APPID => "Stable",
         // FF7_2026_APPID => "Canary",
@@ -263,6 +263,20 @@ fn seventh_heaven_steam() -> Result<()> {
 }
 
 fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> {
+    let choices = &["Yes", "No"];
+    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Do you want to continue installing 7th Heaven?")
+        .default(0) // Default to "Yes"
+        .items(choices)
+        .interact()
+        .unwrap();
+
+    if selection == 1 {
+        // No
+        println!("Understood. Exiting.");
+        std::process::exit(0);
+    }
+
     let game = gog_game::get_game(FF7_GOG_APPID, found_game).context("Failed to get GOG game details")?;
     log::info!("GOG Game details: {:#?}", game);
 
