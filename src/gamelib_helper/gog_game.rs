@@ -1,5 +1,5 @@
 use std::{io::{BufRead, BufReader}, path::{Path, PathBuf}, process::{Command, Stdio}, thread};
-use anyhow::{Context, Result, bail};
+use anyhow::{Context, Result};
 use serde_json::Value;
 use crate::gamelib_helper::{Game, PrefixLauncher, Runner};
 
@@ -97,7 +97,7 @@ pub fn run_in_prefix(
 
 pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<GogGame> {
     let heroic_config_path = get_heroic_config_path();
-    let game_json_path = heroic_config_path.join("GamesConfig").join("{}.json}").with_file_name(app_id.to_string() + ".json");
+    let game_json_path = heroic_config_path.join("GamesConfig").join("{}.json").with_file_name(app_id.to_string() + ".json");
     let game_json_string = std::fs::read_to_string(game_json_path).context("Failed to read GOG game JSON")?;
 
     let root: Value = serde_json::from_str(&game_json_string).context("Failed to parse GOG game JSON")?;
