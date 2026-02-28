@@ -1,5 +1,5 @@
 use std::{io::{BufRead, BufReader}, path::{Path, PathBuf}, process::{Command, Stdio}, thread};
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use serde_json::Value;
 use crate::gamelib_helper::{Game, PrefixRunner, Runner};
 
@@ -54,7 +54,7 @@ pub fn run_in_prefix(
         }
         "proton" => {
             if !wine.pretty_name.contains("GE") {
-                panic!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
+                bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
             }
             command
                 .env("WINEDEBUG", "-all")
@@ -66,7 +66,7 @@ pub fn run_in_prefix(
                 .arg("runinprefix")
                 .arg(&exe_to_launch);
         }
-        _ => panic!("Unknown runner type: {}", wine.name),
+        _ => bail!("Unknown runner type: {}", wine.name),
     }
     let args = args.unwrap_or_default();
     for arg in args {
@@ -110,7 +110,7 @@ pub fn run_in_prefix(
     if status.success() {
         Ok(log::info!("Process exited successfully"))
     } else {
-        panic!("Process exited with an error: {status}");
+        bail!("Process exited with an error: {status}");
     }
 }
 

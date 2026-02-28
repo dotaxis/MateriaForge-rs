@@ -2,7 +2,7 @@
 // Copyright (C) 2026 Chase Taylor
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Result, bail};
 use console::Style;
 use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
@@ -150,7 +150,7 @@ fn detect_versions() -> Result<()> {
             steam
         }
         (None, None) => {
-            anyhow::bail!("Couldn't find any supported versions of FF7!");
+            bail!("Couldn't find any supported versions of FF7!");
         }
     };
 
@@ -165,7 +165,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
     match found_game.source {
         SupportedLaunchers::Steam => {
             if steam_dir.is_none() {
-                anyhow::bail!("Selected Steam game, but no Steam library could be found?");
+                bail!("Selected Steam game, but no Steam library could be found?");
             }
             config.insert("type", "steam".to_string());
 
@@ -176,7 +176,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
                 let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
                 let remaster = gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
                 if original.is_none() && remaster.is_none() {
-                    anyhow::bail!("Couldn't find any supported Steam version of FF7");
+                    bail!("Couldn't find any supported Steam version of FF7");
                 }
                 Ok((original, remaster))
             })?;
@@ -206,7 +206,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
             config.insert("type", "gog".to_string());
             game = Box::new(gog_game::get_game(FF7_GOG_APPID, &found_game).context("Failed to get GOG game details")?);
         },
-        _ => panic!("Unsupported game selected"),
+        _ => bail!("Unsupported game selected"),
     }
 
     let choices = &["Yes", "No"];

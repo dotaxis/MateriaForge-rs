@@ -175,7 +175,7 @@ pub fn run_in_prefix(
     if status.success() {
         Ok(log::info!("Process exited successfully"))
     } else {
-        panic!("Process exited with an error: {status}");
+        bail!("Process exited with an error: {status}");
     }
 }
 
