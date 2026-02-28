@@ -11,7 +11,10 @@
     <string>lighting</string>
     <string>mesh</string>
     <string>music</string>
+    <string>override</string>
+    <string>save</string>
     <string>sfx</string>
+    <string>shaders</string>
     <string>time</string>
     <string>voice</string>
     <string>widescreen</string>
@@ -44,10 +47,10 @@
   <IntOptions>None</IntOptions>
   <CurrentProfile>Default</CurrentProfile>
   <MainWindow>
-    <X>655</X>
-    <Y>405</Y>
-    <W>1250</W>
-    <H>600</H>
-    <State>Normal</State>
+    <X>400</X>
+    <Y>400</Y>
+    <W>1280</W>
+    <H>800</H>
+    <State>Maximized</State>
   </MainWindow>
 </Settings>
