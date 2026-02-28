@@ -3,13 +3,13 @@ use lib_game_detector::data::SupportedLaunchers;
 use std::{env, path::Path};
 
 use materia_forge::{config_handler, gamelib_helper, logging};
-use materia_forge::gamelib_helper::{Game, PrefixLauncher};
+use materia_forge::gamelib_helper::{Game, PrefixRunner};
 
 static FF7_APPID: u32 = 39140;
 static FF7_2026_APPID: u32 = 3837340;
 static FF7_GOG_APPID: u32 = 1698970154;
 
-fn run_exe<G: Game + PrefixLauncher>(game: &G, exe: std::path::PathBuf) -> Result<()> {
+fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<()> {
     if let Some(runner) = game.runner() {
         log::info!("Found runner: {}", runner.name);
     } else {

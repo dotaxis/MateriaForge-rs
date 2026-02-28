@@ -1,4 +1,4 @@
-use crate::gamelib_helper::{Game, PrefixLauncher, Runner};
+use crate::gamelib_helper::{Game, PrefixRunner, Runner};
 use super::steam_proton;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
@@ -25,7 +25,7 @@ impl Game for SteamGame {
     fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
 }
 
-impl PrefixLauncher for SteamGame {
+impl PrefixRunner for SteamGame {
     fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()> {
         run_in_prefix(exe_to_launch, self, args)
     }

@@ -27,9 +27,12 @@ pub trait Game {
     fn runner(&self) -> Option<&Runner>;
 }
 
-pub trait PrefixLauncher {
+pub trait PrefixRunner {
     fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()>;
 }
+
+pub trait PrefixedGame: Game + PrefixRunner {}
+impl<T: Game + PrefixRunner> PrefixedGame for T {}
 
 pub mod steam_game;
 pub mod gog_game;

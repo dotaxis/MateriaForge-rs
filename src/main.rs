@@ -8,10 +8,10 @@ use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
 use materia_forge::{
-    config_handler, gamelib_helper::{self, Game, PrefixLauncher, gog_game}, logging, resource_handler
+    config_handler, gamelib_helper::{self, PrefixedGame, gog_game}, logging, resource_handler
 };
 use std::{
-    collections::HashMap, env, fmt::Write, fs::File, path::Path, path::PathBuf, time::Duration,
+    collections::HashMap, env, fmt::Write, fs::File, path::{Path, PathBuf}, time::Duration
 };
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
@@ -126,8 +126,8 @@ fn detect_versions() -> Result<()> {
         game.source == SupportedLaunchers::HeroicGamesGOG
     });
 
-    let _ = match (steam_game, heroic_game) {
-        (Some(_), Some(gog)) => {
+    let game_version = match (steam_game, heroic_game) {
+        (Some(steam), Some(gog)) => {
             let choices = &["Steam", "Heroic Games"];
             let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
                 .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
@@ -136,26 +136,150 @@ fn detect_versions() -> Result<()> {
                 .interact()?;
 
             match selection {
-                0 => seventh_heaven_steam()?,
-                1 => seventh_heaven_gog(gog)?,
+                0 => steam,
+                1 => gog,
                 _ => unreachable!(),
             }
         }
         (None, Some(gog)) => {
             log::info!("Heroic Games Launcher install detected!");
-            seventh_heaven_gog(gog)?
+            gog
         }
-        (Some(_), None) => {
+        (Some(steam), None) => {
             log::info!("Steam install detected!");
-            seventh_heaven_steam()?
+            steam
         }
         (None, None) => {
             anyhow::bail!("Couldn't find any supported versions of FF7!");
         }
     };
+
+    run_install(game_version)
+}
+
+fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
+    let mut config = HashMap::new();
+    let game: Box<dyn PrefixedGame>;
+    let steam_dir: Option<steamlocate::SteamDir> = gamelib_helper::steam_lib::get_library().ok();
+
+    match found_game.source {
+        SupportedLaunchers::Steam => {
+            if steam_dir.is_none() {
+                anyhow::bail!("Selected Steam game, but no Steam library could be found?");
+            }
+            config.insert("type", "steam".to_string());
+
+            let steam_dir = gamelib_helper::steam_lib::get_library()?;
+            config.insert("steam_dir", steam_dir.path().display().to_string());
+
+            let (original, remaster) = with_spinner("Finding FF7...", "Done!", || {
+                let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
+                let remaster = gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
+                if original.is_none() && remaster.is_none() {
+                    anyhow::bail!("Couldn't find any supported Steam version of FF7");
+                }
+                Ok((original, remaster))
+            })?;
+
+            game = match (original, remaster) {
+                (Some(og), Some(rm)) => {
+                    let choices = &[&og.name, &format!("{} (2026)", rm.name)];
+                    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                        .with_prompt("Multiple Steam installations of FF7 were detected. Which one do you want to patch?")
+                        .default(0)
+                        .items(choices)
+                        .interact()
+                        .context("Selection failed")?;
+
+                    match selection {
+                        0 => Box::new(og),
+                        1 => Box::new(rm),
+                        _ => unreachable!(),
+                    }
+                }
+                (Some(og), None) => Box::new(og),
+                (None, Some(rm)) => Box::new(rm),
+                (None, None) => unreachable!(),
+            };
+        },
+        SupportedLaunchers::HeroicGamesGOG => {
+            config.insert("type", "gog".to_string());
+            game = Box::new(gog_game::get_game(FF7_GOG_APPID, &found_game).context("Failed to get GOG game details")?);
+        },
+        _ => panic!("Unsupported game selected"),
+    }
+
+    let choices = &["Yes", "No"];
+    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Do you want to continue installing 7th Heaven?")
+        .default(0) // Default to "Yes"
+        .items(choices)
+        .interact()
+        .unwrap();
+
+    if selection == 1 {
+        // No
+        println!("Understood. Exiting.");
+        std::process::exit(0);
+    }
+
+    let update_channel = match game.app_id()  {
+        // FF7_APPID => "Stable",
+        // FF7_2026_APPID => "Canary",
+        // FF7_GOG_APPID => "Canary",
+        _ => "Canary"
+    };
+
+    let cache_dir = home::home_dir()
+        .context("Couldn't find $HOME?")?
+        .join(".cache");
+
+    let use_canary = update_channel == "Canary";
+    let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, use_canary)
+        .expect("Failed to download 7th Heaven!");
+
+    if let Some(runner) = &game.runner() {
+        log::info!("Runner set for {}: {}", game.name(), runner.pretty_name);
+        config.insert("runner", runner.name.clone());
+    }
+
+    config_handler::write(config).context("Failed to write config")?;
+
+    // TODO: "Clean install"
+    // Wipe common files
+    // Verify game files
+    // Back up saves
+    // Set proton version
+    // Wipe prefix
+    // Rebuild prefix
+    // Restore saves
+
+    let install_path = get_install_path()?;
+    with_spinner("Installing 7th Heaven...", "Done!", || {
+        install_7th(game.as_ref(), exe_path, &install_path, "7thHeaven.log")
+    })?;
+
+    with_spinner("Patching installation...", "Done!", || {
+        patch_install(&install_path, game.as_ref(), update_channel)
+    })?;
+
+    // TODO: steamOS control scheme + auto-config mod
+
+    create_shortcuts(&install_path, steam_dir, game.app_id()).context("Failed to create shortcuts")?;
+
+    println!(
+        "{} 7th Heaven successfully installed to '{}'",
+        console::style("✔").green(),
+        console::style(&install_path.display())
+            .bold()
+            .underlined()
+            .white()
+    );
+
     Ok(())
 }
 
+/* seventh_heaven_steam
 fn seventh_heaven_steam() -> Result<()> {
     let mut config = HashMap::new();
     config.insert("type", "steam".to_string());
@@ -262,7 +386,9 @@ fn seventh_heaven_steam() -> Result<()> {
 
     Ok(())
 }
+*/
 
+/* seventh_heaven_gog
 fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> {
     let choices = &["Yes", "No"];
     let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
@@ -339,6 +465,7 @@ fn seventh_heaven_gog(found_game: &lib_game_detector::data::Game) -> Result<()> 
 
     Ok(())
 }
+*/
 
 fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();
@@ -446,15 +573,12 @@ fn get_install_path() -> Result<PathBuf> {
     }
 }
 
-fn install_7th<G>(
-    game: &G,
+fn install_7th(
+    game: &dyn PrefixedGame,
     exe_path: PathBuf,
     install_path: &Path,
     log_file: &str,
-) -> Result<()>
-where
-    G: Game + PrefixLauncher,
-{
+) -> Result<()> {
     let exe_path = exe_path
         .canonicalize()
         .with_context(|| format!("Installer not found at {:?}", exe_path))?;
@@ -510,7 +634,7 @@ where
     Ok(())
 }
 
-fn patch_install<T: Game>(install_path: &Path, game: &T, update_channel: &str) -> Result<()> {
+fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &str) -> Result<()> {
     // Send timeout.exe to system32
     let timeout_exe = resource_handler::as_bytes(
         "timeout.exe".to_string(),

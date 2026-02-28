@@ -1,7 +1,7 @@
 use std::{io::{BufRead, BufReader}, path::{Path, PathBuf}, process::{Command, Stdio}, thread};
 use anyhow::{Context, Result};
 use serde_json::Value;
-use crate::gamelib_helper::{Game, PrefixLauncher, Runner};
+use crate::gamelib_helper::{Game, PrefixRunner, Runner};
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -21,7 +21,7 @@ impl Game for GogGame {
     fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
 }
 
-impl PrefixLauncher for GogGame {
+impl PrefixRunner for GogGame {
     fn run_in_prefix(&self, exe_to_launch: PathBuf, args: Option<Vec<String>>) -> Result<()> {
         run_in_prefix(exe_to_launch, self, args)
     }
