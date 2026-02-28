@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 // Copyright (C) 2026 Chase Taylor
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 use anyhow::{Context, Result};
 use console::Style;
 use dialoguer::theme::ColorfulTheme;
@@ -13,7 +15,6 @@ use std::{
 };
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
-pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 const FF7_APPID: u32 = 39140;
 const FF7_2026_APPID: u32 = 3837340;
 const FF7_GOG_APPID: u32 = 1698970154;
