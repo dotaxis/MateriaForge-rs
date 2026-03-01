@@ -208,6 +208,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         },
         _ => bail!("Unsupported game selected"),
     }
+    config.insert("app_id", game.app_id().to_string());
 
     let choices = &["Yes", "No"];
     let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())

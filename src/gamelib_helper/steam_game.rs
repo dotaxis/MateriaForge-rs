@@ -116,6 +116,7 @@ pub fn run_in_prefix(
     let runtime_path = runtime.path.join("run");
     log::info!("{} path: {runtime_path:?}", runtime.name);
 
+    log::info!("Prefix: {}", game.prefix.display());
     command = Command::new(runtime_path);
     command
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)

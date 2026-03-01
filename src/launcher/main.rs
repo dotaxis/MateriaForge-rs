@@ -5,8 +5,6 @@ use std::{env, path::Path};
 use materia_forge::{config_handler, gamelib_helper, logging};
 use materia_forge::gamelib_helper::{Game, PrefixRunner};
 
-static FF7_APPID: u32 = 39140;
-static FF7_2026_APPID: u32 = 3837340;
 static FF7_GOG_APPID: u32 = 1698970154;
 
 fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<()> {
@@ -53,9 +51,12 @@ fn main() -> Result<()> {
             let steam_dir = steamlocate::SteamDir::from_dir(Path::new(&steam_dir_str))?;
             log::info!("Steam path: {}", steam_dir.path().display());
 
-            let game = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone())
-                .or_else(|_| gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir))
-                .context("Couldn't find either FF7 or FF7 2026 Edition in Steam library")?;
+            let app_id = config_handler::read_value("app_id")
+                .context("Configured type=steam, but app_id is missing in TOML")?;
+            log::info!("App ID: {}", app_id);
+
+            let game = gamelib_helper::steam_game::get_game(app_id.parse()?, steam_dir.clone())
+                .context(format!("Couldn't find {} in Steam library", app_id))?;
             run_exe(&game, seventh_heaven_exe)?;
         }
     }
