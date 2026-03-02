@@ -28,12 +28,15 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 
 Pre-built binaries are available on the [Releases](https://github.com/dotaxis/MateriaForge-rs/releases) page.
 
-Download the latest release, make it executable, and run it:
+1. Ensure you have installed FF7 and opened it to the launcher at least once.
+
+2. Download the latest release, unzip, and run it:
 
 ```bash
-chmod +x MateriaForge
 ./MateriaForge
 ```
+
+3. On first launch of 7th Heaven, click **Save**. Do **NOT** click Reset Defaults.
 
 ---
 
