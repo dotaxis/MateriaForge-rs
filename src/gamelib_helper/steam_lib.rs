@@ -5,8 +5,6 @@ use std::{
     io,
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    thread::sleep,
-    time::Duration,
 };
 use sysinfo::System;
 use urlencoding::encode;
@@ -99,15 +97,17 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
         .with_context(|| format!("Couldn't get parent of {file:?}"))?;
     let uid = users::get_current_uid();
     let mut tmp = PathBuf::from("/tmp");
-    let mut steam_bin = "steam";
+    let mut steam_args: Vec<&str> = vec![];
+    let steam_bin = 
+        match steam_dir.path().to_string_lossy()
+        .contains("com.valvesoftware.Steam") {
+            true => "flatpak",
+            _ => "steam",
+        };
 
     // Flatpak Steam
-    if steam_dir
-        .path()
-        .to_string_lossy()
-        .contains("com.valvesoftware.Steam")
-    {
-        steam_bin = "flatpak run com.valvesoftware.Steam";
+    if steam_bin == "flatpak" {
+        steam_args = vec!["run", "com.valvesoftware.Steam"];
         tmp = PathBuf::from(format!(
             "/run/user/{uid}/.flatpak/com.valvesoftware.Steam/tmp"
         ));
@@ -121,33 +121,33 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
             ])
             .status()?;
 
-        kill_steam()?;
+        Command::new("flatpak")
+            .args([
+                "kill",
+                "com.valvesoftware.Steam",
+            ])
+            .status()?;
     }
 
     let encoded_url = format!(
         "steam://addnonsteamgame/{}",
         encode(&file.to_string_lossy())
     );
-    let _ = OpenOptions::new()
+    OpenOptions::new()
         .create(true)
         .write(true)
         .truncate(true)
-        .open(tmp.join("addnonsteamgamefile"));
+        .open(tmp.join("addnonsteamgamefile"))?;
 
-    Command::new(steam_bin)
+    let status = Command::new(steam_bin)
+        .args(&steam_args)
         .arg(&encoded_url)
         .stdout(Stdio::null())
         .stderr(Stdio::null())
-        .spawn()?;
+        .status()?;
 
-    while Command::new("pgrep")
-        .arg("steam")
-        .stdout(Stdio::null())
-        .status()
-        .map(|s| !s.success())
-        .unwrap_or(true)
-    {
-        sleep(Duration::from_secs(1));
+    if !status.success() {
+        anyhow::bail!("Steam exited with status: {status}");
     }
 
     log::info!("Added {file:?} to Steam!");
