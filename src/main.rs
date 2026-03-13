@@ -224,18 +224,16 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         std::process::exit(0);
     }
 
-    let update_channel = match game.app_id()  {
-        // FF7_APPID => "Stable",
-        // FF7_2026_APPID => "Canary",
-        // FF7_GOG_APPID => "Canary",
-        _ => "Canary"
+    let use_canary = false; // TODO: use arg
+    let update_channel = match use_canary  {
+        true => "Canary",
+        false => "Stable"
     };
 
     let cache_dir = home::home_dir()
         .context("Couldn't find $HOME?")?
         .join(".cache");
 
-    let use_canary = update_channel == "Canary";
     let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, use_canary)
         .expect("Failed to download 7th Heaven!");
 
@@ -245,15 +243,6 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
     }
 
     config_handler::write(config).context("Failed to write config")?;
-
-    // TODO: "Clean install"
-    // Wipe common files
-    // Verify game files
-    // Back up saves
-    // Set proton version
-    // Wipe prefix
-    // Rebuild prefix
-    // Restore saves
 
     let install_path = get_install_path()?;
     with_spinner("Installing 7th Heaven...", "Done!", || {
