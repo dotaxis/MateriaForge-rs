@@ -119,15 +119,26 @@ pub fn run_in_prefix(
     log::info!("Prefix: {}", game.prefix.display());
 
     // Build STEAM_COMPAT_MOUNTS
-    // TODO: do it better
-    let game_mount = game
-        .path
-        .parent()
-        .and_then(|p| p.parent())
-        .and_then(|p| p.parent())
-        .map(|p| p.to_path_buf())
-        .unwrap_or_else(|| PathBuf::new());
-    let mounts = format!("{}:{}", game.client_path.display(), game_mount.display());
+    let ancestor = |path: &Path, levels: usize| -> PathBuf {
+        (0..levels).fold(Some(path), |p, _| p.and_then(Path::parent))
+            .map(Path::to_path_buf)
+            .unwrap_or_default()
+    };
+    let mut mount_paths: Vec<PathBuf> = vec![
+        game.client_path.clone(),
+        ancestor(&game.path, 3),
+        ancestor(&proton.path, 4),
+        ancestor(&runtime.path, 4),
+    ];
+    mount_paths.extend(
+        std::env::var("STEAM_COMPAT_MOUNTS")
+            .unwrap_or_default()
+            .split(':')
+            .filter(|s| !s.is_empty())
+            .map(PathBuf::from),
+    );
+    mount_paths.dedup();
+    let mounts = mount_paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(":");
 
     command = Command::new(runtime_path);
     command
