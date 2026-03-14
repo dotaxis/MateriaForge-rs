@@ -117,8 +117,21 @@ pub fn run_in_prefix(
     log::info!("{} path: {runtime_path:?}", runtime.name);
 
     log::info!("Prefix: {}", game.prefix.display());
+
+    // Build STEAM_COMPAT_MOUNTS
+    // TODO: do it better
+    let game_mount = game
+        .path
+        .parent()
+        .and_then(|p| p.parent())
+        .and_then(|p| p.parent())
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| PathBuf::new());
+    let mounts = format!("{}:{}", game.client_path.display(), game_mount.display());
+
     command = Command::new(runtime_path);
     command
+        .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
         .env(
             "STEAM_COMPAT_DATA_PATH",
