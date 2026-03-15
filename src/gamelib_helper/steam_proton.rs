@@ -1,28 +1,38 @@
-use std::fs;
 use anyhow::{bail, Context, Result};
+use std::fs;
 
 use crate::gamelib_helper::{Runner, Runtime};
 
 fn get_runtime_appid(runner: &Runner) -> Result<u32> {
-    let manifest_path = runner.path.parent()
+    let manifest_path = runner
+        .path
+        .parent()
         .ok_or_else(|| anyhow::anyhow!("Runner path has no parent"))?
         .join("toolmanifest.vdf");
-    let manifest_vdf = fs::read_to_string(&manifest_path)
-        .context("Failed to read manifest file")?;
+    let manifest_vdf =
+        fs::read_to_string(&manifest_path).context("Failed to read manifest file")?;
 
-    keyvalues_parser::parse(&manifest_vdf).context("Failed to parse manifest VDF")?
+    keyvalues_parser::parse(&manifest_vdf)
+        .context("Failed to parse manifest VDF")?
         .value
-        .get_obj().context("No object in VDF")?
-        .get("require_tool_appid").context("No require_tool_appid key")?
-        .first().context("No require_tool_appid found")?
-        .get_str().context("require_tool_appid is not a string")?
-        .parse::<u32>().context("Failed to parse require_tool_appid as u32")
+        .get_obj()
+        .context("No object in VDF")?
+        .get("require_tool_appid")
+        .context("No require_tool_appid key")?
+        .first()
+        .context("No require_tool_appid found")?
+        .get_str()
+        .context("require_tool_appid is not a string")?
+        .parse::<u32>()
+        .context("Failed to parse require_tool_appid as u32")
 }
 
 fn get_runtime(runner: &Runner) -> Result<Runtime> {
     let runtime_appid = get_runtime_appid(runner)?;
     let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
-    let (app, library) = steam_dir.find_app(runtime_appid)?.with_context(|| format!("Couldn't find runtime app with ID {}", runtime_appid))?;
+    let (app, library) = steam_dir
+        .find_app(runtime_appid)?
+        .with_context(|| format!("Couldn't find runtime app with ID {}", runtime_appid))?;
     let path = library.resolve_app_dir(&app);
     let name = app.name.as_ref().context("No app name?")?.to_string();
 

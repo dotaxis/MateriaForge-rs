@@ -2,18 +2,25 @@
 // Copyright (C) 2026 Chase Taylor
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
-use anyhow::{Context, Result, bail};
+use anyhow::{bail, Context, Result};
 use console::Style;
 use dialoguer::theme::ColorfulTheme;
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
-use rfd::FileDialog;
-use materia_forge::{
-    config_handler, gamelib_helper::{self, PrefixedGame, gog_game}, logging, resource_handler
-};
-use std::{
-    collections::HashMap, env, fmt::Write, fs::File, path::{Path, PathBuf}, time::Duration
-};
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
+use materia_forge::{
+    config_handler,
+    gamelib_helper::{self, gog_game, PrefixedGame},
+    logging, resource_handler,
+};
+use rfd::FileDialog;
+use std::{
+    collections::HashMap,
+    env,
+    fmt::Write,
+    fs::File,
+    path::{Path, PathBuf},
+    time::Duration,
+};
 
 const FF7_APPID: u32 = 39140;
 const FF7_2026_APPID: u32 = 3837340;
@@ -117,13 +124,11 @@ fn detect_versions() -> Result<()> {
     let ff7_installs = detector.get_all_detected_games();
     let steam_game = ff7_installs.iter().find(|game| {
         game.title.to_lowercase().contains("final fantasy vii")
-            &&
-        game.source == SupportedLaunchers::Steam
+            && game.source == SupportedLaunchers::Steam
     });
     let heroic_game = ff7_installs.iter().find(|game| {
         game.title.to_lowercase().contains("final fantasy vii")
-            &&
-        game.source == SupportedLaunchers::HeroicGamesGOG
+            && game.source == SupportedLaunchers::HeroicGamesGOG
     });
 
     let game_version = match (steam_game, heroic_game) {
@@ -173,8 +178,10 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
             config.insert("steam_dir", steam_dir.path().display().to_string());
 
             let (original, remaster) = with_spinner("Finding FF7...", "Done!", || {
-                let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
-                let remaster = gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
+                let original =
+                    gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
+                let remaster =
+                    gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
                 if original.is_none() && remaster.is_none() {
                     bail!("Couldn't find any supported Steam version of FF7");
                 }
@@ -201,11 +208,14 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
                 (None, Some(rm)) => Box::new(rm),
                 (None, None) => unreachable!(),
             };
-        },
+        }
         SupportedLaunchers::HeroicGamesGOG => {
             config.insert("type", "gog".to_string());
-            game = Box::new(gog_game::get_game(FF7_GOG_APPID, &found_game).context("Failed to get GOG game details")?);
-        },
+            game = Box::new(
+                gog_game::get_game(FF7_GOG_APPID, &found_game)
+                    .context("Failed to get GOG game details")?,
+            );
+        }
         _ => bail!("Unsupported game selected"),
     }
     config.insert("app_id", game.app_id().to_string());
@@ -225,9 +235,9 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
     }
 
     let use_canary = env::args().any(|a| a == "-c" || a == "--canary");
-    let update_channel = match use_canary  {
+    let update_channel = match use_canary {
         true => "Canary",
-        false => "Stable"
+        false => "Stable",
     };
 
     let cache_dir = home::home_dir()
@@ -255,7 +265,8 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
 
     // TODO: steamOS control scheme + auto-config mod
 
-    create_shortcuts(&install_path, steam_dir, game.app_id()).context("Failed to create shortcuts")?;
+    create_shortcuts(&install_path, steam_dir, game.app_id())
+        .context("Failed to create shortcuts")?;
 
     println!(
         "{} 7th Heaven successfully installed to '{}'",
@@ -357,8 +368,9 @@ fn get_install_path() -> Result<PathBuf> {
             match confirm {
                 0 => {
                     term.clear_last_lines(2)?;
-                    std::fs::create_dir_all(&path)
-                        .with_context(|| format!("Couldn't create directory '{}'", path.display()))?;
+                    std::fs::create_dir_all(&path).with_context(|| {
+                        format!("Couldn't create directory '{}'", path.display())
+                    })?;
                     println!(
                         "{} Installing to '{}'",
                         console::style("!").yellow(),
@@ -425,13 +437,14 @@ fn install_7th(
         FF7_APPID => "(2013)",
         FF7_2026_APPID => "(2026)",
         FF7_GOG_APPID => "(GOG)",
-        _ => "(Unknown)"
+        _ => "(Unknown)",
     };
 
-
-
-    std::fs::copy(launcher_path, install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)))
-        .expect("Failed to copy launcher to install_path");
+    std::fs::copy(
+        launcher_path,
+        install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)),
+    )
+    .expect("Failed to copy launcher to install_path");
 
     Ok(())
 }
@@ -474,7 +487,7 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         FF7_APPID => "Steam",
         FF7_2026_APPID => "SteamReRelease",
         FF7_GOG_APPID => "GOG",
-        _ => "Unknown"
+        _ => "Unknown",
     };
     let library_location = &format!(
         "Z:{}",
@@ -484,11 +497,11 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
             .unwrap()
             .replace("/", "\\")
     );
-    let ff7_exe = match game.app_id()  {
+    let ff7_exe = match game.app_id() {
         FF7_APPID => "ff7_en.exe",
         FF7_2026_APPID => "FFVII.exe",
         FF7_GOG_APPID => "FFVII.exe",
-        _ => "FFVII.exe"
+        _ => "FFVII.exe",
     };
     let ff7_exe_path = &format!(
         "Z:{}",
@@ -520,15 +533,22 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
     Ok(())
 }
 
-fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir>, app_id: u32) -> Result<()> {
+fn create_shortcuts(
+    install_path: &Path,
+    steam_dir: Option<steamlocate::SteamDir>,
+    app_id: u32,
+) -> Result<()> {
     // App launcher shortcut
-    let applications_dir = xdg::BaseDirectories::new().get_data_home().context("Couldn't get xdg_data_home")?.join("applications");
+    let applications_dir = xdg::BaseDirectories::new()
+        .get_data_home()
+        .context("Couldn't get xdg_data_home")?
+        .join("applications");
 
     let shortcut_identifier = match app_id {
         FF7_APPID => "(2013)",
         FF7_2026_APPID => "(2026)",
         FF7_GOG_APPID => "(GOG)",
-        _ => "(Unknown)"
+        _ => "(Unknown)",
     };
 
     let mut shortcut_file = resource_handler::as_str(
@@ -618,7 +638,10 @@ fn create_shortcuts(install_path: &Path, steam_dir: Option<steamlocate::SteamDir
             0 => {
                 term.clear_last_lines(1)?;
                 println!("{} Adding Steam shortcut.", console::style("!").yellow());
-                gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)), dir)?;
+                gamelib_helper::steam_lib::add_nonsteam_game(
+                    &install_path.join(format!("Launch 7th Heaven {}", shortcut_identifier)),
+                    dir,
+                )?;
             }
             _ => {
                 term.clear_last_lines(1)?;

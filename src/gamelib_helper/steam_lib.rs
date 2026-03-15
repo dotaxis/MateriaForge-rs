@@ -98,12 +98,14 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
     let uid = users::get_current_uid();
     let mut tmp = PathBuf::from("/tmp");
     let mut steam_args: Vec<&str> = vec![];
-    let steam_bin = 
-        match steam_dir.path().to_string_lossy()
-        .contains("com.valvesoftware.Steam") {
-            true => "flatpak",
-            _ => "steam",
-        };
+    let steam_bin = match steam_dir
+        .path()
+        .to_string_lossy()
+        .contains("com.valvesoftware.Steam")
+    {
+        true => "flatpak",
+        _ => "steam",
+    };
 
     // Flatpak Steam
     if steam_bin == "flatpak" {
@@ -122,10 +124,7 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
             .status()?;
 
         Command::new("flatpak")
-            .args([
-                "kill",
-                "com.valvesoftware.Steam",
-            ])
+            .args(["kill", "com.valvesoftware.Steam"])
             .status()?;
     }
 

@@ -1,10 +1,4 @@
-use crate::gamelib_helper::{
-    Game,
-    PrefixRunner,
-    Runner,
-    spawn_wine_log_threads,
-    steam_proton
-};
+use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
 use std::{
     fs::{self, metadata},
     path::{Path, PathBuf},
@@ -14,8 +8,7 @@ use std::{
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct SteamGame {
     pub app_id: u32,
     pub name: String,
@@ -26,11 +19,21 @@ pub struct SteamGame {
 }
 
 impl Game for SteamGame {
-    fn app_id(&self) -> u32 { self.app_id }
-    fn name(&self) -> &str { &self.name }
-    fn path(&self) -> &Path { &self.path }
-    fn prefix(&self) -> &Path { &self.prefix }
-    fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
+    fn app_id(&self) -> u32 {
+        self.app_id
+    }
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn path(&self) -> &Path {
+        &self.path
+    }
+    fn prefix(&self) -> &Path {
+        &self.prefix
+    }
+    fn runner(&self) -> Option<&Runner> {
+        self.runner.as_ref()
+    }
 }
 
 impl PrefixRunner for SteamGame {
@@ -45,7 +48,9 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         "Located Steam installation: {}",
         steam_dir_pathbuf.display()
     );
-    let (app, library) = steam_dir.find_app(app_id)?.with_context(|| format!("Couldn't find app with ID {}", app_id))?;
+    let (app, library) = steam_dir
+        .find_app(app_id)?
+        .with_context(|| format!("Couldn't find app with ID {}", app_id))?;
     let path = library.resolve_app_dir(&app);
     let name = app.name.context("No app name?")?.to_string();
     let prefix = library
@@ -128,7 +133,8 @@ pub fn run_in_prefix(
 
     // Build STEAM_COMPAT_MOUNTS
     let ancestor = |path: &Path, levels: usize| -> PathBuf {
-        (0..levels).fold(Some(path), |p, _| p.and_then(Path::parent))
+        (0..levels)
+            .fold(Some(path), |p, _| p.and_then(Path::parent))
             .map(Path::to_path_buf)
             .unwrap_or_default()
     };
@@ -146,7 +152,11 @@ pub fn run_in_prefix(
             .map(PathBuf::from),
     );
     mount_paths.dedup();
-    let mounts = mount_paths.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(":");
+    let mounts = mount_paths
+        .iter()
+        .map(|p| p.display().to_string())
+        .collect::<Vec<_>>()
+        .join(":");
 
     command = Command::new(runtime_path);
     command

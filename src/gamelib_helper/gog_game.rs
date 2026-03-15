@@ -1,18 +1,12 @@
-use crate::gamelib_helper::{
-    Game,
-    PrefixRunner,
-    Runner,
-    spawn_wine_log_threads
-};
+use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
+use anyhow::{bail, Context, Result};
+use serde_json::Value;
 use std::{
     path::{Path, PathBuf},
-    process::{Command, Stdio}
+    process::{Command, Stdio},
 };
-use anyhow::{Context, Result, bail};
-use serde_json::Value;
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct GogGame {
     pub app_id: u32,
     pub name: String,
@@ -22,11 +16,21 @@ pub struct GogGame {
 }
 
 impl Game for GogGame {
-    fn app_id(&self) -> u32 { self.app_id }
-    fn name(&self) -> &str { &self.name }
-    fn path(&self) -> &Path { &self.path }
-    fn prefix(&self) -> &Path { &self.prefix }
-    fn runner(&self) -> Option<&Runner> { self.runner.as_ref() }
+    fn app_id(&self) -> u32 {
+        self.app_id
+    }
+    fn name(&self) -> &str {
+        &self.name
+    }
+    fn path(&self) -> &Path {
+        &self.path
+    }
+    fn prefix(&self) -> &Path {
+        &self.prefix
+    }
+    fn runner(&self) -> Option<&Runner> {
+        self.runner.as_ref()
+    }
 }
 
 impl PrefixRunner for GogGame {
@@ -109,20 +113,47 @@ pub fn run_in_prefix(
 
 pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<GogGame> {
     let heroic_config_path = get_heroic_config_path();
-    let game_json_path = heroic_config_path.join("GamesConfig").join("{}.json").with_file_name(app_id.to_string() + ".json");
-    let game_json_string = std::fs::read_to_string(game_json_path).context("Failed to read GOG game JSON")?;
+    let game_json_path = heroic_config_path
+        .join("GamesConfig")
+        .join("{}.json")
+        .with_file_name(app_id.to_string() + ".json");
+    let game_json_string =
+        std::fs::read_to_string(game_json_path).context("Failed to read GOG game JSON")?;
 
-    let root: Value = serde_json::from_str(&game_json_string).context("Failed to parse GOG game JSON")?;
-    let json = root.get(app_id.to_string()).context("GOG game JSON missing app ID key")?;
-    let mut prefix = json.get("winePrefix").and_then(|v| v.as_str()).map(PathBuf::from).context("GOG game JSON missing winePrefix")?;
-    let wine_version = json.get("wineVersion").and_then(Value::as_object).context("GOG game JSON missing wineVersion")?;
+    let root: Value =
+        serde_json::from_str(&game_json_string).context("Failed to parse GOG game JSON")?;
+    let json = root
+        .get(app_id.to_string())
+        .context("GOG game JSON missing app ID key")?;
+    let mut prefix = json
+        .get("winePrefix")
+        .and_then(|v| v.as_str())
+        .map(PathBuf::from)
+        .context("GOG game JSON missing winePrefix")?;
+    let wine_version = json
+        .get("wineVersion")
+        .and_then(Value::as_object)
+        .context("GOG game JSON missing wineVersion")?;
 
     // println!("GOG Game JSON: {:#?}", json);
 
     let runner = Runner {
-        name: wine_version.get("type").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion type")?,
-        pretty_name: wine_version.get("name").and_then(Value::as_str).map(String::from).context("GOG game JSON missing wineVersion name")?.to_string(),
-        path: wine_version.get("bin").and_then(Value::as_str).map(PathBuf::from).context("GOG game JSON missing wineVersion bin")?,
+        name: wine_version
+            .get("type")
+            .and_then(Value::as_str)
+            .map(String::from)
+            .context("GOG game JSON missing wineVersion type")?,
+        pretty_name: wine_version
+            .get("name")
+            .and_then(Value::as_str)
+            .map(String::from)
+            .context("GOG game JSON missing wineVersion name")?
+            .to_string(),
+        path: wine_version
+            .get("bin")
+            .and_then(Value::as_str)
+            .map(PathBuf::from)
+            .context("GOG game JSON missing wineVersion bin")?,
         runtime: None,
     };
 
@@ -134,7 +165,10 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
     Ok(GogGame {
         app_id,
         name: game.title.clone(),
-        path: game.path_game_dir.clone().ok_or_else(|| anyhow::anyhow!("Game is missing path_game_dir in detector result"))?,
+        path: game
+            .path_game_dir
+            .clone()
+            .ok_or_else(|| anyhow::anyhow!("Game is missing path_game_dir in detector result"))?,
         prefix: prefix,
         runner: Some(runner),
     })
@@ -145,8 +179,10 @@ fn get_heroic_config_path() -> PathBuf {
     // let mut is_using_flatpak = false;
 
     let path_home = home::home_dir().expect("Failed to get home directory");
-    let path_config = xdg::BaseDirectories::new().config_home.unwrap_or(path_home.join(".config"));
-    
+    let path_config = xdg::BaseDirectories::new()
+        .config_home
+        .unwrap_or(path_home.join(".config"));
+
     let mut path_heroic_config = path_config.join("heroic");
 
     if !path_heroic_config.is_dir() {

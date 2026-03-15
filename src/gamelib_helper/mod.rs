@@ -1,14 +1,12 @@
-use std::path::{Path, PathBuf};
+use anyhow::{Context, Result};
 use std::fs::OpenOptions;
 use std::io::{BufRead, BufReader, Write};
-use std::process::{ChildStdout, ChildStderr};
+use std::path::{Path, PathBuf};
+use std::process::{ChildStderr, ChildStdout};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
-use anyhow::{Context, Result};
 
-
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Runner {
     pub name: String,
     pub pretty_name: String,
@@ -16,8 +14,7 @@ pub struct Runner {
     pub runtime: Option<Runtime>,
 }
 
-#[derive(Debug)]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Runtime {
     pub name: String,
     pub pretty_name: String,
@@ -83,7 +80,7 @@ pub fn spawn_wine_log_threads(
     Ok((stdout_handle, stderr_handle))
 }
 
-pub mod steam_game;
 pub mod gog_game;
-pub mod steam_proton;
+pub mod steam_game;
 pub mod steam_lib;
+pub mod steam_proton;

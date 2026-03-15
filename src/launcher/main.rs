@@ -2,8 +2,8 @@ use anyhow::{bail, Context, Result};
 use lib_game_detector::data::SupportedLaunchers;
 use std::{env, path::Path};
 
-use materia_forge::{config_handler, gamelib_helper, logging};
 use materia_forge::gamelib_helper::{Game, PrefixRunner};
+use materia_forge::{config_handler, gamelib_helper, logging};
 
 static FF7_GOG_APPID: u32 = 1698970154;
 
@@ -23,7 +23,9 @@ fn main() -> Result<()> {
     logging::init("launcher.log")?;
 
     let launcher_bin = env::current_exe().context("Failed to get binary path")?;
-    let launcher_dir = launcher_bin.parent().context("Failed to get binary directory")?;
+    let launcher_dir = launcher_bin
+        .parent()
+        .context("Failed to get binary directory")?;
     let seventh_heaven_exe = launcher_dir.join("7th Heaven.exe");
 
     if !seventh_heaven_exe.exists() {
@@ -38,9 +40,11 @@ fn main() -> Result<()> {
         "gog" => {
             let g = lib_game_detector::get_detector()
                 .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesGOG);
-            let heroic_game = g.iter().flatten().find(|game| {
-                game.title.to_lowercase().contains("final fantasy vii")
-            }).unwrap();
+            let heroic_game = g
+                .iter()
+                .flatten()
+                .find(|game| game.title.to_lowercase().contains("final fantasy vii"))
+                .unwrap();
             let game = gamelib_helper::gog_game::get_game(FF7_GOG_APPID, &heroic_game)
                 .context("Configured type=gog, but GOG game was not found")?;
             run_exe(&game, seventh_heaven_exe)?;
