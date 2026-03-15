@@ -2,11 +2,9 @@ use anyhow::{Context, Result};
 use dialoguer::theme::ColorfulTheme;
 use std::{
     fs::OpenOptions,
-    io,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
-use sysinfo::System;
 use urlencoding::encode;
 
 pub fn get_library() -> Result<steamlocate::SteamDir> {
@@ -56,39 +54,6 @@ pub fn get_library() -> Result<steamlocate::SteamDir> {
         .context("Failed to get library from dir")?;
 
     Ok(library)
-}
-
-pub fn kill_steam() -> Result<()> {
-    loop {
-        let mut sys = System::new_all();
-        sys.refresh_all();
-
-        let mut steam_running = false;
-
-        for (pid, process) in sys.processes() {
-            if process.name() == "steam" {
-                steam_running = true;
-                log::info!("Found 'steam' with PID: {pid}");
-                if process.kill() {
-                    log::info!("Killed Steam successfully.");
-                    return Ok(());
-                } else {
-                    // todo: use dialoguer -- or should we leave this?
-                    log::error!(
-                        "Failed to kill Steam! Please exit Steam and press A or Enter to continue."
-                    );
-                    let mut input = String::new();
-                    io::stdin().read_line(&mut input)?;
-                    continue;
-                }
-            }
-        }
-        if !steam_running {
-            log::warn!("I guess Steam isn't running. Continuing.");
-            break;
-        }
-    }
-    Ok(())
 }
 
 pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Result<()> {

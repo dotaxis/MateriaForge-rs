@@ -1,6 +1,6 @@
 use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
 use std::{
-    fs::{self, metadata},
+    fs,
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
@@ -208,27 +208,6 @@ pub fn run_in_prefix(
     }
 }
 
-pub fn wipe_prefix(game: &SteamGame) -> Result<()> {
-    let prefix_dir = match metadata(Path::new(&game.prefix)) {
-        Ok(meta) if meta.is_dir() => Path::new(&game.prefix),
-        _ => {
-            log::info!("{} doesn't exist. Continuing.", game.prefix.display());
-            return Ok(());
-        }
-    };
-
-    // Better safe than sorry
-    let pattern = format!("compatdata/{}/pfx", &game.app_id);
-    if !prefix_dir.to_string_lossy().contains(&pattern) {
-        bail!("{} does not contain {}", prefix_dir.display(), pattern);
-    }
-
-    log::info!("Deleting path: {}", prefix_dir.display());
-    std::fs::remove_dir_all(prefix_dir)?;
-    log::info!("Wiped prefix for app_id: {}", &game.app_id);
-    Ok(())
-}
-
 pub fn set_runner(game: &SteamGame, runner: &str) -> Result<()> {
     let re = Regex::new(r#""CompatToolMapping"\s*\{"#)?;
     let replacement = format!(
@@ -259,54 +238,5 @@ pub fn set_runner(game: &SteamGame, runner: &str) -> Result<()> {
         &game.app_id,
         runner
     );
-    Ok(())
-}
-
-pub fn launch_game(game: &SteamGame) -> Result<()> {
-    let steam_command = format!("steam://rungameid/{:?}", &game.app_id);
-    log::info!("Running command: steam {}", &steam_command);
-    // nohup steam steam://rungameid/39140 &> /dev/null
-    Command::new("steam")
-        .arg(steam_command)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null()) // TODO: log this properly
-        .spawn()?;
-
-    log::info!("Launched {}", game.name);
-    Ok(())
-}
-
-pub fn wipe_common(game: &SteamGame) -> Result<()> {
-    let common_dir = match metadata(Path::new(&game.path)) {
-        Ok(meta) if meta.is_dir() => Path::new(&game.path),
-        _ => {
-            log::info!("{} doesn't exist. Continuing.", game.path.display());
-            return Ok(());
-        }
-    };
-
-    // Better safe than sorry
-    let pattern = format!("common/{}", &game.name);
-    if !common_dir.to_string_lossy().contains(&pattern) {
-        bail!("{} does not contain {pattern}", common_dir.display());
-    }
-
-    log::info!("Deleting path: {}", common_dir.display());
-    std::fs::remove_dir_all(common_dir)?;
-    log::info!("Wiped prefix for app_id: {}", &game.app_id);
-    Ok(())
-}
-
-pub fn validate_game(game: &SteamGame) -> Result<()> {
-    let steam_command = format!("steam://validate/{:?}", &game.app_id);
-    log::info!("Running command: steam {}", &steam_command);
-    // nohup steam steam://validate/39140 &> /dev/null
-    Command::new("steam")
-        .arg(steam_command)
-        .stdout(Stdio::null())
-        .stderr(Stdio::null()) // TODO: log this properly
-        .spawn()?;
-
-    log::info!("Launched {}", game.name);
     Ok(())
 }
