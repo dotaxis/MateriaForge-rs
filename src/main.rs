@@ -20,7 +20,7 @@ const FF7_2026_APPID: u32 = 3837340;
 const FF7_GOG_APPID: u32 = 1698970154;
 
 fn main() {
-    if let Err(e) = logging::init() {
+    if let Err(e) = logging::init("MateriaForge.log") {
         eprintln!("Fatal: {e}");
         std::process::exit(1);
     }

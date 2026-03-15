@@ -20,7 +20,7 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
 }
 
 fn main() -> Result<()> {
-    logging::init()?;
+    logging::init("launcher.log")?;
 
     let launcher_bin = env::current_exe().context("Failed to get binary path")?;
     let launcher_dir = launcher_bin.parent().context("Failed to get binary directory")?;

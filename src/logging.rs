@@ -8,12 +8,12 @@ use log4rs::{
 };
 use std::{env, panic};
 
-pub fn init() -> Result<()> {
+pub fn init(filename: &str) -> Result<()> {
     let current_bin = env::current_exe().context("Failed to get binary path")?;
     let current_dir = current_bin
         .parent()
         .context("Failed to get binary directory")?;
-    let log_path = current_dir.join("MateriaForge.log");
+    let log_path = current_dir.join(filename);
 
     let stdout = ConsoleAppender::builder()
         .encoder(Box::new(PatternEncoder::new("[{h({l})}] {m}{n}")))

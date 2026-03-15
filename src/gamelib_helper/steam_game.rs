@@ -3,7 +3,12 @@ use super::steam_proton;
 use anyhow::{bail, Context, Result};
 use regex::Regex;
 use std::{
-    fs::{self, metadata}, io::{BufRead, BufReader}, path::{Path, PathBuf}, process::{Command, Stdio}, thread
+    fs::{self, metadata, OpenOptions},
+    io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+    process::{Command, Stdio},
+    sync::{Arc, Mutex},
+    thread,
 };
 
 #[derive(Debug)]
@@ -142,6 +147,7 @@ pub fn run_in_prefix(
 
     command = Command::new(runtime_path);
     command
+        .env("WINEDEBUG", "+err,+warn,+debugstr")
         .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
         .env(
@@ -175,19 +181,40 @@ pub fn run_in_prefix(
     let stdout = child.stdout.take().context("Failed to capture stdout")?;
     let stderr = child.stderr.take().context("Failed to capture stderr")?;
 
+    let wine_log_path = std::env::current_exe()
+        .context("Failed to get binary path")?
+        .parent()
+        .context("Failed to get binary directory")?
+        .join("wine.log");
+    let wine_log = Arc::new(Mutex::new(
+        OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(&wine_log_path)
+            .with_context(|| format!("Failed to create {}", wine_log_path.display()))?,
+    ));
+    log::info!("Wine logs: {}", wine_log_path.display());
+
+    let log_out = Arc::clone(&wine_log);
     let stdout_thread = thread::spawn(move || {
         let reader = BufReader::new(stdout).lines();
         for line in reader {
             if let Ok(line) = line {
-                log::info!("[wine] {line}");
+                if let Ok(mut f) = log_out.lock() {
+                    let _ = writeln!(f, "{line}");
+                }
             }
         }
     });
+    let log_err = Arc::clone(&wine_log);
     let stderr_thread = thread::spawn(move || {
         let reader = BufReader::new(stderr).lines();
         for line in reader {
             if let Ok(line) = line {
-                log::warn!("[wine] {line}");
+                if let Ok(mut f) = log_err.lock() {
+                    let _ = writeln!(f, "{line}");
+                }
             }
         }
     });
