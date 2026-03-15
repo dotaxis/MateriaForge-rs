@@ -224,7 +224,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         std::process::exit(0);
     }
 
-    let use_canary = false; // TODO: use arg
+    let use_canary = env::args().any(|a| a == "-c" || a == "--canary");
     let update_channel = match use_canary  {
         true => "Canary",
         false => "Stable"

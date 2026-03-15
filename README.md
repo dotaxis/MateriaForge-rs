@@ -40,6 +40,14 @@ Pre-built binaries are available on the [Releases](https://github.com/dotaxis/Ma
 
 ---
 
+## Options
+
+| Flag | Description |
+|------|-------------|
+| `-c`, `--canary` | Install pre-release (canary) versions of 7th Heaven and FFNx |
+
+---
+
 ## Building from Source
 
 You'll need a recent stable [Rust toolchain](https://rustup.rs/).
