@@ -1,15 +1,18 @@
-use crate::gamelib_helper::{Game, PrefixRunner, Runner};
-use super::steam_proton;
-use anyhow::{bail, Context, Result};
-use regex::Regex;
+use crate::gamelib_helper::{
+    Game,
+    PrefixRunner,
+    Runner,
+    spawn_wine_log_threads,
+    steam_proton
+};
 use std::{
-    fs::{self, metadata, OpenOptions},
-    io::{BufRead, BufReader, Write},
+    fs::{self, metadata},
     path::{Path, PathBuf},
     process::{Command, Stdio},
-    sync::{Arc, Mutex},
-    thread,
 };
+
+use anyhow::{bail, Context, Result};
+use regex::Regex;
 
 #[derive(Debug)]
 #[derive(Clone)]
@@ -181,43 +184,7 @@ pub fn run_in_prefix(
     let stdout = child.stdout.take().context("Failed to capture stdout")?;
     let stderr = child.stderr.take().context("Failed to capture stderr")?;
 
-    let wine_log_path = std::env::current_exe()
-        .context("Failed to get binary path")?
-        .parent()
-        .context("Failed to get binary directory")?
-        .join("wine.log");
-    let wine_log = Arc::new(Mutex::new(
-        OpenOptions::new()
-            .create(true)
-            .write(true)
-            .truncate(true)
-            .open(&wine_log_path)
-            .with_context(|| format!("Failed to create {}", wine_log_path.display()))?,
-    ));
-    log::info!("Wine logs: {}", wine_log_path.display());
-
-    let log_out = Arc::clone(&wine_log);
-    let stdout_thread = thread::spawn(move || {
-        let reader = BufReader::new(stdout).lines();
-        for line in reader {
-            if let Ok(line) = line {
-                if let Ok(mut f) = log_out.lock() {
-                    let _ = writeln!(f, "{line}");
-                }
-            }
-        }
-    });
-    let log_err = Arc::clone(&wine_log);
-    let stderr_thread = thread::spawn(move || {
-        let reader = BufReader::new(stderr).lines();
-        for line in reader {
-            if let Ok(line) = line {
-                if let Ok(mut f) = log_err.lock() {
-                    let _ = writeln!(f, "{line}");
-                }
-            }
-        }
-    });
+    let (stdout_thread, stderr_thread) = spawn_wine_log_threads(stdout, stderr)?;
 
     let status = child.wait()?;
 
