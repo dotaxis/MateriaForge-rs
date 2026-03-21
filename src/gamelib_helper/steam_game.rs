@@ -170,6 +170,7 @@ pub fn run_in_prefix(
                 .context("Couldn't get parent of prefix directory")?,
         )
         .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+        .env("WINE_LARGE_ADDRESS_AWARE", "1")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .arg("--")

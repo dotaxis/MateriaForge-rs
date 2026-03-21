@@ -60,6 +60,7 @@ pub fn run_in_prefix(
                 .env("WINEDEBUG", "+err,+warn,+debugstr")
                 .env("WINEPREFIX", &game.prefix)
                 .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+                .env("WINE_LARGE_ADDRESS_AWARE", "1")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .arg(&exe_to_launch);
@@ -73,6 +74,7 @@ pub fn run_in_prefix(
                 .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
                 .env("SteamGameId", "0")
                 .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
+                .env("WINE_LARGE_ADDRESS_AWARE", "1")
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .arg("runinprefix")
