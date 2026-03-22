@@ -1,4 +1,4 @@
-use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner, DEFAULT_WINEDEBUG};
+use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
 use crate::config_handler;
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
@@ -55,13 +55,12 @@ pub fn run_in_prefix(
 
     let mut command: Command;
     command = Command::new(&wine.path);
-    let wine_debug = config_handler::read_value("wine_debug").unwrap_or(DEFAULT_WINEDEBUG.to_string());
     match wine.name.as_str() {
         "wine" => {
             command
-                .env("WINEDEBUG", &wine_debug)
                 .env("WINEPREFIX", &game.prefix)
                 .env("WINEDLLOVERRIDES", "dinput=n,b")
+                .envs(config_handler::read_env_vars())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .arg(&exe_to_launch);
@@ -71,10 +70,10 @@ pub fn run_in_prefix(
                 bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
             }
             command
-                .env("WINEDEBUG", &wine_debug)
                 .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
                 .env("SteamGameId", "0")
                 .env("WINEDLLOVERRIDES", "dinput=n,b")
+                .envs(config_handler::read_env_vars())
                 .stdout(Stdio::piped())
                 .stderr(Stdio::piped())
                 .arg("runinprefix")

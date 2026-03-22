@@ -1,4 +1,4 @@
-use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner, DEFAULT_WINEDEBUG};
+use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
 use crate::config_handler;
 use std::{
     fs,
@@ -160,9 +160,7 @@ pub fn run_in_prefix(
         .join(":");
 
     command = Command::new(runtime_path);
-    let wine_debug = config_handler::read_value("wine_debug").unwrap_or(DEFAULT_WINEDEBUG.to_string());
     command
-        .env("WINEDEBUG", wine_debug)
         .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
         .env(
@@ -172,6 +170,7 @@ pub fn run_in_prefix(
                 .context("Couldn't get parent of prefix directory")?,
         )
         .env("WINEDLLOVERRIDES", "dinput=n,b")
+        .envs(config_handler::read_env_vars())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .arg("--verb=waitforexitandrun")
