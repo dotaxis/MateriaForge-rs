@@ -189,7 +189,7 @@ pub fn run_in_prefix(
         .arg("--verb=waitforexitandrun")
         .arg("--")
         .arg(proton.path)
-        .arg("waitforexitandrun")
+        .arg("runinprefix")
         .arg(&exe_to_launch);
     let args = args.unwrap_or_default();
     for arg in args {
