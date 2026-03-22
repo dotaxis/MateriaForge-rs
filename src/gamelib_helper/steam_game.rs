@@ -57,16 +57,29 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
     let prefix = library
         .path()
         .join(format!("steamapps/compatdata/{app_id}/pfx"));
-    let runner = steam_dir
-        .compat_tool_mapping()
-        .ok()
-        .and_then(|mapping| mapping.get(&app_id).cloned())
-        .and_then(|tool| {
-            let tool_name = tool.name.clone()?;
+
+    let config_runner = config_handler::read_value("runner").ok();
+    let runner = config_runner
+        .and_then(|runner_name| {
+            log::info!("Runner override from config: {runner_name}");
             let proton_versions = steam_proton::find_all_versions(steam_dir.clone()).ok()?;
             proton_versions
                 .into_iter()
-                .find(|runner| runner.name == tool_name)
+                .find(|runner| runner.name == runner_name)
+        })
+        .or_else(|| {
+            steam_dir
+                .compat_tool_mapping()
+                .ok()
+                .and_then(|mapping| mapping.get(&app_id).cloned())
+                .and_then(|tool| {
+                    let tool_name = tool.name.clone()?;
+                    let proton_versions =
+                        steam_proton::find_all_versions(steam_dir.clone()).ok()?;
+                    proton_versions
+                        .into_iter()
+                        .find(|runner| runner.name == tool_name)
+                })
         })
         .or_else(|| {
             log::info!(
