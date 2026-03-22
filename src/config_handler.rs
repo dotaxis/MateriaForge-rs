@@ -36,3 +36,4 @@ pub fn read_value(key: &str) -> Result<String> {
 
     Ok(value.to_string())
 }
+
