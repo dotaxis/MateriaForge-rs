@@ -1,6 +1,5 @@
-use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
+use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner, DEFAULT_WINEDEBUG};
 use crate::config_handler;
-use crate::DEFAULT_WINEDEBUG;
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::{
@@ -56,7 +55,7 @@ pub fn run_in_prefix(
 
     let mut command: Command;
     command = Command::new(&wine.path);
-    let wine_debug = config_handler::read_value_or_default("wine_debug", DEFAULT_WINEDEBUG);
+    let wine_debug = config_handler::read_value("wine_debug").unwrap_or(DEFAULT_WINEDEBUG.to_string());
     match wine.name.as_str() {
         "wine" => {
             command

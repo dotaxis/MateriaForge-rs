@@ -9,8 +9,8 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 use materia_forge::{
     config_handler,
-    gamelib_helper::{self, gog_game, PrefixedGame},
-    logging, resource_handler, DEFAULT_WINEDEBUG,
+    gamelib_helper::{self, gog_game, PrefixedGame, DEFAULT_WINEDEBUG},
+    logging, resource_handler,
 };
 use rfd::FileDialog;
 use std::{
