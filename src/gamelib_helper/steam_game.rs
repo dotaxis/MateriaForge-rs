@@ -126,7 +126,7 @@ pub fn run_in_prefix(
         .runtime
         .clone()
         .with_context(|| format!("Runner has no runtime? {proton:?}"))?;
-    let runtime_path = runtime.path.join("run");
+    let runtime_path = runtime.path.join("_v2-entry-point");
     log::info!("{} path: {runtime_path:?}", runtime.name);
 
     log::info!("Prefix: {}", game.prefix.display());
@@ -172,6 +172,7 @@ pub fn run_in_prefix(
         .env("WINEDLLOVERRIDES", "dinput.dll=n,b")
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
+        .arg("--verb=waitforexitandrun")
         .arg("--")
         .arg(proton.path)
         .arg("waitforexitandrun")
