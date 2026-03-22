@@ -252,9 +252,10 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         config.insert("runner", runner.name.clone());
     }
 
-    config.insert("wine_debug", DEFAULT_WINEDEBUG.to_string());
+    let mut env_vars = std::collections::HashMap::new();
+    env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
 
-    config_handler::write(config).context("Failed to write config")?;
+    config_handler::write(config, env_vars).context("Failed to write config")?;
 
     let install_path = get_install_path()?;
     with_spinner("Installing 7th Heaven...", "Done!", || {
