@@ -36,3 +36,31 @@ pub fn read_value(key: &str) -> Result<String> {
 
     Ok(value.to_string())
 }
+
+pub fn read_value_or_default(key: &str, default: &str) -> String {
+    let current_bin = match env::current_exe() {
+        Ok(exe) => exe,
+        Err(_) => return default.to_string(),
+    };
+    let current_dir = match current_bin.parent() {
+        Some(dir) => dir,
+        None => return default.to_string(),
+    };
+    let toml_path = current_dir.join(CONFIG_NAME);
+
+    let toml_string = match std::fs::read_to_string(&toml_path) {
+        Ok(content) => content,
+        Err(_) => return default.to_string(),
+    };
+
+    let toml_value: toml::Value = match toml::from_str(&toml_string) {
+        Ok(value) => value,
+        Err(_) => return default.to_string(),
+    };
+
+    toml_value
+        .get(key)
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| default.to_string())
+}

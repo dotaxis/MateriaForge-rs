@@ -1,4 +1,6 @@
 use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
+use crate::config_handler;
+use crate::DEFAULT_WINEDEBUG;
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -159,8 +161,9 @@ pub fn run_in_prefix(
         .join(":");
 
     command = Command::new(runtime_path);
+    let wine_debug = config_handler::read_value_or_default("wine_debug", DEFAULT_WINEDEBUG);
     command
-        .env("WINEDEBUG", "+err,+warn,+debugstr")
+        .env("WINEDEBUG", wine_debug)
         .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
         .env(
