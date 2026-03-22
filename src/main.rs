@@ -9,7 +9,7 @@ use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use lib_game_detector::{data::SupportedLaunchers, get_detector};
 use materia_forge::{
     config_handler,
-    gamelib_helper::{self, gog_game, PrefixedGame},
+    gamelib_helper::{self, gog_game, PrefixedGame, DEFAULT_WINEDEBUG},
     logging, resource_handler,
 };
 use rfd::FileDialog;
@@ -251,6 +251,8 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         log::info!("Runner set for {}: {}", game.name(), runner.pretty_name);
         config.insert("runner", runner.name.clone());
     }
+
+    config.insert("wine_debug", DEFAULT_WINEDEBUG.to_string());
 
     config_handler::write(config).context("Failed to write config")?;
 

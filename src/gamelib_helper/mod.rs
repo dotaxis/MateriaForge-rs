@@ -6,6 +6,8 @@ use std::process::{ChildStderr, ChildStdout};
 use std::sync::{Arc, Mutex};
 use std::thread::{self, JoinHandle};
 
+pub const DEFAULT_WINEDEBUG: &str = "+err,+warn,+debugstr";
+
 #[derive(Debug, Clone)]
 pub struct Runner {
     pub name: String,
