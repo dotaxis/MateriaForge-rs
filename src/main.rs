@@ -506,13 +506,11 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         FF7_GOG_APPID => "FFVII.exe",
         _ => "FFVII.exe",
     };
-    let ff7_exe_path = &format!(
-        "Z:{}",
-        game.path()
-            .join(ff7_exe)
-            .to_string_lossy()
-            .replace("/", "\\")
-    );
+    let ff7_exe_path = &{
+        let full = game.path().join(ff7_exe).to_string_lossy().to_string();
+        let trimmed = full.find("/common/").map_or(full.as_str(), |i| &full[i..]);
+        format!("S:{}", trimmed.replace("/", "\\"))
+    };
 
     settings_xml.contents = settings_xml
         .contents

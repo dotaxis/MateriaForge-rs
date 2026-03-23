@@ -172,6 +172,9 @@ pub fn run_in_prefix(
         .collect::<Vec<_>>()
         .join(":");
 
+    let install_path = &game.path.parent().context("Couldn't get parent of game path")?;
+    let library_path = install_path.parent().context("Couldn't get parent of install path")?;
+
     command = Command::new(runtime_path);
     command
         .env("STEAM_COMPAT_MOUNTS", mounts)
@@ -182,6 +185,9 @@ pub fn run_in_prefix(
                 .parent()
                 .context("Couldn't get parent of prefix directory")?,
         )
+        .env("STEAM_COMPAT_INSTALL_PATH", install_path)
+        .env("STEAM_COMPAT_LIBRARY_PATHS", library_path)
+        .env("PROTON_SET_GAME_DRIVE", "1")
         .env("WINEDLLOVERRIDES", "dinput=n,b")
         .envs(config_handler::read_env_vars())
         .stdout(Stdio::piped())
