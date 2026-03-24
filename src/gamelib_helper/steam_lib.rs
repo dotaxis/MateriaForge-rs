@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
 use dialoguer::theme::ColorfulTheme;
+use regex::Regex;
 use std::{
     fs::OpenOptions,
     path::{Path, PathBuf},
@@ -115,5 +116,73 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
     }
 
     log::info!("Added {file:?} to Steam!");
+    Ok(())
+}
+
+pub fn set_controller_config(
+    steam_dir: &steamlocate::SteamDir,
+    app_id: u32,
+    steam_shortcut: bool,
+) -> Result<()> {
+    let (shortcut_id, is_gog) = match app_id {
+        39140 => ("(2013)", false),
+        3837340 => ("(2026)", false),
+        1698970154 => ("(GOG)", true),
+        _ => ("(Unknown)", false),
+    };
+    let template = "controller_neptune_gamepad+mouse+click.vdf";
+    let config_glob = steam_dir
+        .path()
+        .join("steamapps/common/Steam Controller Configs/*/config/configset_controller_neptune.vdf")
+        .to_string_lossy()
+        .to_string();
+
+    let mut entries = Vec::new();
+    if !is_gog {
+        entries.push(format!(
+            r#"	"{app_id}"
+	{{
+		"template"		"{template}"
+	}}"#
+        ));
+    }
+    if steam_shortcut {
+        entries.push(format!(
+            r#"	"Launch 7th Heaven {shortcut_id}"
+	{{
+		"template"		"{template}"
+	}}"#
+        ));
+    }
+    let new_entries = entries.join("\n");
+
+    // Remove any existing entries for this app ID or the 7th Heaven shortcut
+    let remove_app_re = Regex::new(&format!(r#"[ \t]*"{app_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#))?;
+    let escaped_id = regex::escape(shortcut_id);
+    let remove_7h_re = Regex::new(&format!(
+        r#"[ \t]*"Launch 7th Heaven {escaped_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#
+    ))?;
+    let blank_lines_re = Regex::new(r"\n([ \t]*\n)+")?;
+
+    let inject_re = Regex::new(r#""controller_config"\s*\{"#)?;
+    let replacement = format!("\"controller_config\"\n{{\n{new_entries}");
+
+    for path in glob::glob(&config_glob)
+        .context("Invalid glob pattern")?
+        .flatten()
+    {
+        let content =
+            std::fs::read_to_string(&path).with_context(|| format!("Couldn't read {:?}", path))?;
+
+        let content = remove_app_re.replace_all(&content, "").to_string();
+        let content = remove_7h_re.replace_all(&content, "").to_string();
+        let content = blank_lines_re.replace_all(&content, "\n").to_string();
+        let content = inject_re.replace(&content, &replacement).to_string();
+        std::fs::write(&path, content.as_bytes())
+            .with_context(|| format!("Couldn't write to {:?}", path))?;
+
+        log::info!("Patched controller config: {:?}", path);
+    }
+
     Ok(())
 }

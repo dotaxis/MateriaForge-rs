@@ -298,10 +298,11 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
         patch_install(&install_path, game.as_ref(), update_channel)
     })?;
 
-    // TODO: steamOS control scheme + auto-config mod
-
-    create_shortcuts(&install_path, steam_dir, game.app_id())
+    let (steam_shortcut, _) = create_shortcuts(&install_path, steam_dir.clone(), game.app_id())
         .context("Failed to create shortcuts")?;
+
+    add_controller_config(game.as_ref(), &steam_dir, steam_shortcut)
+        .context("Failed to set controller config")?;
 
     println!(
         "{} 7th Heaven successfully installed to '{}'",
@@ -559,7 +560,7 @@ fn create_shortcuts(
     install_path: &Path,
     steam_dir: Option<steamlocate::SteamDir>,
     app_id: u32,
-) -> Result<()> {
+) -> Result<(bool, ())> {
     // App launcher shortcut
     let applications_dir = xdg::BaseDirectories::new()
         .get_data_home()
@@ -649,6 +650,7 @@ fn create_shortcuts(
     }
 
     // Non-Steam Game
+    let mut steam_shortcut = false;
     if let Some(dir) = steam_dir {
         let choices = &["Yes", "No"];
         let confirm = dialoguer::Select::with_theme(&ColorfulTheme::default())
@@ -658,6 +660,7 @@ fn create_shortcuts(
             .interact()?;
         match confirm {
             0 => {
+                steam_shortcut = true;
                 term.clear_last_lines(1)?;
                 println!("{} Adding Steam shortcut.", console::style("!").yellow());
                 gamelib_helper::steam_lib::add_nonsteam_game(
@@ -669,6 +672,63 @@ fn create_shortcuts(
                 term.clear_last_lines(1)?;
             }
         }
+    }
+
+    Ok((steam_shortcut, ()))
+}
+
+fn add_controller_config(
+    game: &dyn PrefixedGame,
+    steam_dir: &Option<steamlocate::SteamDir>,
+    steam_shortcut: bool,
+) -> Result<()> {
+    if !*IS_DECK {
+        log::info!("Not running on Steam Deck, skipping controller configuration.");
+        return Ok(());
+    }
+    if !steam_shortcut && game.app_id() == FF7_GOG_APPID {
+        log::info!("No Steam shortcut added for GOG version, skipping controller configuration.");
+        return Ok(());
+    }
+
+    let term = console::Term::stdout();
+    if let Some(dir) = steam_dir {
+        let choices = &["Yes", "No"];
+        let confirm = dialoguer::Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("Do you want to add a controller configuration to Steam?")
+            .default(0) // Default to "Yes"
+            .items(choices)
+            .interact()?;
+        match confirm {
+            0 => {
+                term.clear_last_lines(1)?;
+                println!(
+                    "{} Adding controller configuration.",
+                    console::style("!").yellow()
+                );
+                log::info!("Adding controller configuration for Steam Deck.");
+            }
+            _ => {
+                term.clear_last_lines(1)?;
+                log::info!("User opted to skip adding controller configuration.");
+                return Ok(());
+            }
+        }
+
+        let controller_vdf = resource_handler::as_str(
+            "controller_neptune_gamepad+mouse+click.vdf".to_string(),
+            dir.path().join("controller_base/templates/"),
+            resource_handler::CONTROLLER_PROFILE,
+        );
+        std::fs::write(&controller_vdf.destination, controller_vdf.contents).with_context(
+            || {
+                format!(
+                    "Couldn't write {} to {:?}",
+                    controller_vdf.name, controller_vdf.destination
+                )
+            },
+        )?;
+        gamelib_helper::steam_lib::set_controller_config(dir, game.app_id(), steam_shortcut)?;
     }
 
     Ok(())

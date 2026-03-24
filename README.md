@@ -45,6 +45,7 @@ Pre-built binaries are available on the [Releases](https://github.com/dotaxis/Ma
 | Flag | Description |
 |------|-------------|
 | `-c`, `--canary` | Install pre-release (canary) versions of 7th Heaven and FFNx |
+| `-d`, `--deck` | Force detection of Steam Deck for controller config option |
 
 ---
 
