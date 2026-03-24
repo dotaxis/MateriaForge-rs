@@ -466,19 +466,6 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         )
     })?;
 
-    // Send Default.xml to install path
-    // let default_xml = resource_handler::as_str(
-    //     "Default.xml".to_string(),
-    //     install_path.join("7thWorkshop/profiles"),
-    //     resource_handler::DEFAULT_XML,
-    // );
-    // std::fs::write(&default_xml.destination, default_xml.contents).with_context(|| {
-    //     format!(
-    //         "Couldn't write {} to {:?}",
-    //         default_xml.name, default_xml.destination
-    //     )
-    // })?;
-
     // Patch settings.xml and send to install_path
     let mut settings_xml = resource_handler::as_str(
         "settings.xml".to_string(),
