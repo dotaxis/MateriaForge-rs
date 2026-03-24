@@ -1,5 +1,5 @@
-use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
 use crate::config_handler;
+use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::{

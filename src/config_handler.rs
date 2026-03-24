@@ -76,4 +76,3 @@ pub fn read_env_vars() -> HashMap<String, String> {
     }
     env_vars
 }
-

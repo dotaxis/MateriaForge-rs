@@ -1,5 +1,5 @@
-use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
 use crate::config_handler;
+use crate::gamelib_helper::{spawn_wine_log_threads, steam_proton, Game, PrefixRunner, Runner};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -172,8 +172,13 @@ pub fn run_in_prefix(
         .collect::<Vec<_>>()
         .join(":");
 
-    let install_path = &game.path.parent().context("Couldn't get parent of game path")?;
-    let library_path = install_path.parent().context("Couldn't get parent of install path")?;
+    let install_path = &game
+        .path
+        .parent()
+        .context("Couldn't get parent of game path")?;
+
+    // Trick Proton into making the S: drive contain steamapps
+    let library_path = ancestor(&game.path, 3).display().to_string();
 
     command = Command::new(runtime_path);
     command
