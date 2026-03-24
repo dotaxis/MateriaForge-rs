@@ -5,7 +5,6 @@ pub const TIMEOUT_EXE: &[u8] = include_bytes!("../resources/timeout.exe");
 
 pub const CONTROLLER_PROFILE: &str =
     include_str!("../resources/controller_neptune_gamepad+mouse+click.vdf");
-pub const DEFAULT_XML: &str = include_str!("../resources/Default.xml");
 pub const MOD_XML: &str = include_str!("../resources/mod.xml");
 pub const SETTINGS_XML: &str = include_str!("../resources/settings.xml");
 pub const DXVK_CONF: &str = include_str!("../resources/dxvk.conf");
