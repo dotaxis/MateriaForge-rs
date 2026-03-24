@@ -19,12 +19,21 @@ use std::{
     fmt::Write,
     fs::File,
     path::{Path, PathBuf},
+    sync::LazyLock,
     time::Duration,
 };
 
 const FF7_APPID: u32 = 39140;
 const FF7_2026_APPID: u32 = 3837340;
 const FF7_GOG_APPID: u32 = 1698970154;
+
+// Check for Steam Deck
+static IS_DECK: LazyLock<bool> = LazyLock::new(|| {
+    std::fs::read_to_string("/etc/os-release")
+        .map(|s| ["SteamOS", "Bazzite"].iter().any(|id| s.contains(id)))
+        .unwrap_or(false)
+        || env::args().any(|a| a == "-d" || a == "--deck")
+});
 
 fn main() {
     if let Err(e) = logging::init("MateriaForge.log") {
@@ -41,15 +50,29 @@ fn main() {
 
 fn draw_header() {
     let title = format!("Welcome to MateriaForge {VERSION}");
-    let description = [
+    let mut description = vec![
         "This script will:",
         "1. Apply patches to FF7's proton prefix to accommodate 7th Heaven",
         "2. Install 7th Heaven to a folder of your choosing",
-        "3. Add 7th Heaven to Steam using a custom launcher script",
-        "4. Add a custom controller config for Steam Deck, to allow mouse",
-        "   control with trackpad without holding down the STEAM button",
+        "3. Add an app launcher shortcut for 7th Heaven",
+        "4. Optionally add a desktop shortcut and Steam shortcut for easy access",
     ];
-    let footer = "For support, please open an issue on GitHub,or ask in the #ff7-linux channel of the Tsunamods Discord";
+    let mut footer = [
+        "   For support, please open an issue on GitHub,or ask in the #ff7-linux channel of the Tsunamods Discord",
+        "",
+        "   Use arrow keys and Enter to navigate the prompts.",
+    ];
+
+    if *IS_DECK {
+        description.append(
+            &mut [
+                "5. Add a custom controller config for Steam Deck, to allow mouse",
+                "   control with trackpad without holding down the STEAM button",
+            ]
+            .to_vec(),
+        );
+        footer[2] = "   Use D-Pad and A button to navigate the prompts.";
+    }
 
     // Pad description
     let description: Vec<String> = description
@@ -102,17 +125,26 @@ fn draw_header() {
     // Print the bottom border
     println!("{}", border_style.apply_to(middle_border));
 
-    // Wrap the footer to match the width of the longest description line
-    let wrapped_footer = textwrap::fill(footer, max_description_width); // Wrap the footer text
-
-    // Print the wrapped footer
-    for line in wrapped_footer.lines() {
-        println!(
-            "{} {:<max_description_width$} {}",
-            border_style.apply_to(border_char),
-            footer_style.apply_to(line),
-            border_style.apply_to(border_char)
-        );
+    // Wrap the footer to match the width of the longest description line and print it
+    for line in footer.iter() {
+        let wrapped_line = textwrap::fill(line, max_description_width);
+        let lines: Vec<&str> = wrapped_line.lines().collect();
+        for wrapped in &lines {
+            println!(
+                "{} {:<max_description_width$} {}",
+                border_style.apply_to(border_char),
+                footer_style.apply_to(wrapped),
+                border_style.apply_to(border_char),
+            );
+        }
+        if lines.len() > 1 {
+            println!(
+                "{} {:<max_description_width$} {}",
+                border_style.apply_to(border_char),
+                "",
+                border_style.apply_to(border_char),
+            );
+        }
     }
 
     // Print the bottom border
