@@ -127,8 +127,8 @@ pub fn set_controller_config(
     let (shortcut_id, is_gog) = match app_id {
         39140 => ("(2013)", false),
         3837340 => ("(2026)", false),
-        1698970154 => ("(GOG)", true),
-        _ => ("(Unknown)", false),
+        1698970154 => ("(gog)", true),
+        _ => ("(unknown)", false),
     };
     let template = "controller_neptune_gamepad+mouse+click.vdf";
     let config_glob = steam_dir
@@ -148,7 +148,7 @@ pub fn set_controller_config(
     }
     if steam_shortcut {
         entries.push(format!(
-            r#"	"Launch 7th Heaven {shortcut_id}"
+            r#"	"launch 7th heaven {shortcut_id}"
 	{{
 		"template"		"{template}"
 	}}"#
@@ -160,7 +160,7 @@ pub fn set_controller_config(
     let remove_app_re = Regex::new(&format!(r#"[ \t]*"{app_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#))?;
     let escaped_id = regex::escape(shortcut_id);
     let remove_7h_re = Regex::new(&format!(
-        r#"[ \t]*"Launch 7th Heaven {escaped_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#
+        r#"[ \t]*"launch 7th heaven {escaped_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#
     ))?;
     let blank_lines_re = Regex::new(r"\n([ \t]*\n)+")?;
 
