@@ -1,14 +1,9 @@
 use anyhow::{bail, Context, Result};
-use std::fs;
+use std::{fs, path::PathBuf};
 
 use crate::gamelib_helper::{Runner, Runtime};
 
-fn get_runtime_appid(runner: &Runner) -> Result<u32> {
-    let manifest_path = runner
-        .path
-        .parent()
-        .ok_or_else(|| anyhow::anyhow!("Runner path has no parent"))?
-        .join("toolmanifest.vdf");
+fn get_runtime_appid(manifest_path: PathBuf) -> Result<u32> {
     let manifest_vdf =
         fs::read_to_string(&manifest_path).context("Failed to read manifest file")?;
 
@@ -28,7 +23,12 @@ fn get_runtime_appid(runner: &Runner) -> Result<u32> {
 }
 
 fn get_runtime(runner: &Runner) -> Result<Runtime> {
-    let runtime_appid = get_runtime_appid(runner)?;
+    let manifest_path = runner
+        .path
+        .parent()
+        .context("Runner path has no parent")?
+        .join("toolmanifest.vdf");
+    let runtime_appid = get_runtime_appid(manifest_path)?;
     let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
     let (app, library) = steam_dir
         .find_app(runtime_appid)?
@@ -43,8 +43,41 @@ fn get_runtime(runner: &Runner) -> Result<Runtime> {
     })
 }
 
+pub fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
+    let compat_dirs = [
+        steam_dir.path().join("compatibilitytools.d"),
+        "/usr/share/steam/compatibilitytools.d".into(),
+    ];
+
+    let mut custom_runners: Vec<Runner> = Vec::new();
+    for path in compat_dirs
+        .iter()
+        .filter_map(|dir| dir.read_dir().ok())
+        .flatten()
+        .flatten()
+    {
+        if path.file_type()?.is_dir() {
+            let runner_path = path.path().join("proton");
+            if runner_path.is_file() {
+                let name = path.file_name().to_string_lossy().to_string();
+                let mut runner = Runner {
+                    name: name.clone(),
+                    pretty_name: name,
+                    path: runner_path,
+                    runtime: None,
+                };
+                runner.runtime = get_runtime(&runner).ok();
+
+                custom_runners.push(runner);
+            }
+        }
+    }
+
+    Ok(custom_runners)
+}
+
+
 pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
-    // TODO: custom runner support via compatibilitytools.d
     let mut proton_versions: Vec<Runner> = Vec::new();
     for library in (steam_dir.libraries()?).flatten() {
         for app in library.apps().flatten() {
@@ -75,9 +108,16 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
         }
     }
 
+    proton_versions.extend(
+        find_custom_versions(steam_dir.clone())
+            .context("Failed to find custom Proton versions")?
+            .into_iter(),
+    );
+
     if proton_versions.is_empty() {
         bail!("No Proton versions found")
     }
+
     Ok(proton_versions)
 }
 
