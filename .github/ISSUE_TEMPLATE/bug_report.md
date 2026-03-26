@@ -21,16 +21,18 @@ Steps to reproduce the behavior:
 A clear and concise description of what you expected to happen.
 
 **Screenshots**
-If applicable, add screenshots to help explain your problem.
+If applicable, upload screenshots to help explain your problem.
 
-**Desktop (please complete the following information):**
+**System information (please complete the following information):**
  - Steam Deck: [yes/no]
  - Distro [e.g. Arch Linux]:
+ - DE/WM [e.g. KDE, Hyprland]:
 
-**Log files**
-```
-MateriaForge.log contents
-```
+**Log files (upload any or all of the following):**
+* MateriaForge.log
+* 7thHeaven.log
+* launcher.log
+* wine.log
 
 **Additional context**
 Add any other context about the problem here.
