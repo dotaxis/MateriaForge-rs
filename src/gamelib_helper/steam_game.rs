@@ -133,13 +133,13 @@ pub fn run_in_prefix(
     let proton = game
         .runner
         .clone()
-        .with_context(|| format!("Game has no runner? {game:?}"))?;
+        .with_context(|| format!("Couldn't find proton for game: {game:#?}"))?;
     log::info!("Proton bin: {}", proton.path.display());
 
     let runtime = proton
         .runtime
         .clone()
-        .with_context(|| format!("Runner has no runtime? {proton:?}"))?;
+        .with_context(|| format!("Couldn't find Steam Linux Runtime for proton: {proton:#?}"))?;
     let runtime_path = runtime.path.join("run");
     log::info!("{} path: {runtime_path:?}", runtime.name);
 

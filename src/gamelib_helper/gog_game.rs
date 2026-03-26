@@ -48,7 +48,7 @@ pub fn run_in_prefix(
     let wine = game
         .runner
         .clone()
-        .with_context(|| format!("Game has no runner? {game:?}"))?;
+        .with_context(|| format!("Couldn't find wine for game: {game:#?}"))?;
     log::info!("Using runner: {}", wine.pretty_name);
     log::info!("Runner bin: {}", wine.path.display());
     log::info!("Wine prefix: {}", game.prefix.display());
