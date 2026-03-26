@@ -282,11 +282,6 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
     let exe_path = download_asset("tsunamods-codes/7th-Heaven", cache_dir, use_canary)
         .expect("Failed to download 7th Heaven!");
 
-    if let Some(runner) = &game.runner() {
-        log::info!("Runner set for {}: {}", game.name(), runner.pretty_name);
-        config.insert("runner", runner.name.clone());
-    }
-
     let mut env_vars = std::collections::HashMap::new();
     env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
 

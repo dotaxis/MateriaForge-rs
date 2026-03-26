@@ -75,7 +75,7 @@ MANGOHUD = "1"
 | `type` | Game install type: `steam` or `gog` | `steam` | Yes |
 | `app_id` | The game's app ID (Steam or GOG) | *(set during install)* | Yes |
 | `steam_dir` | Path to Steam installation directory | *(set during install)* | Only for `type = "steam"` |
-| `runner` | Proton version override | *(set during install)* | No |
+| `runner` | Proton version override | *(none)* | No |
 | `launch_args` | Extra arguments passed to 7th Heaven on launch | *(none)* | No |
 
 ### Environment Variables
