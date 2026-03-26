@@ -49,6 +49,50 @@ Pre-built binaries are available on the [Releases](https://github.com/dotaxis/Ma
 
 ---
 
+## Configuration (TOML)
+
+MateriaForge generates a `MateriaForge.toml` file in the 7th Heaven installation folder. This file is created automatically during setup, but you can edit it manually to customize behavior.
+
+### Example
+
+```toml
+app_id = "3837340"
+type = "steam"
+steam_dir = "/home/user/.steam/root"
+runner = "proton_9"
+launch_args = "/launch /quit"
+
+[env]
+WINEDEBUG = "+err,+warn,+debugstr"
+PROTON_LOG = "1"
+MANGOHUD = "1"
+```
+
+### Keys
+
+| Key | Description | Default | Required |
+|-----|-------------|---------|----------|
+| `type` | Game install type: `steam` or `gog` | `steam` | Yes |
+| `app_id` | The game's app ID (Steam or GOG) | *(set during install)* | Yes |
+| `steam_dir` | Path to Steam installation directory | *(set during install)* | Only for `type = "steam"` |
+| `runner` | Proton version override | *(set during install)* | No |
+| `launch_args` | Extra arguments passed to 7th Heaven on launch | *(none)* | No |
+
+### Environment Variables
+
+The `[env]` table lets you set environment variables that are passed to the game runner:
+
+```toml
+[env]
+WINEDEBUG = "+err,+warn,+debugstr"
+```
+
+Any key/value pair under `[env]` will be set as an environment variable when launching the game. `WINEDEBUG` is included by default.
+
+> **Note:** CLI arguments passed directly to the launcher take priority over `launch_args` in the TOML.
+
+---
+
 ## Building from Source
 
 You'll need a recent stable [Rust toolchain](https://rustup.rs/).
