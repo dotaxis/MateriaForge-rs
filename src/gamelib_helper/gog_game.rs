@@ -169,7 +169,7 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
         path: game
             .path_game_dir
             .clone()
-            .ok_or_else(|| anyhow::anyhow!("Game is missing path_game_dir in detector result"))?,
+            .context("Game is missing path_game_dir in detector result")?,
         prefix: prefix,
         runner: Some(runner),
     })
