@@ -76,8 +76,9 @@ fn main() -> Result<()> {
                 .context("Configured type=steam, but app_id is missing in TOML")?;
             log::info!("App ID: {}", app_id);
 
-            let game = gamelib_helper::steam_game::get_game(app_id.parse()?, steam_dir.clone())
+            let mut game = gamelib_helper::steam_game::get_game(app_id.parse()?, steam_dir.clone())
                 .context(format!("Couldn't find {} in Steam library", app_id))?;
+            game.runner = Some(gamelib_helper::steam_game::get_runner(&game)?);
             run_exe(&game, seventh_heaven_exe)?;
         }
     }

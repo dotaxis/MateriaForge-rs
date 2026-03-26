@@ -58,69 +58,60 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         .path()
         .join(format!("steamapps/compatdata/{app_id}/pfx"));
 
-    let config_runner = config_handler::read_value("runner").ok();
-    let runner = config_runner
-        .and_then(|runner_name| {
-            log::info!("Runner override from config: {runner_name}");
-            let proton_versions = steam_proton::find_all_versions(steam_dir.clone()).ok()?;
-            proton_versions
-                .into_iter()
-                .find(|runner| runner.name == runner_name)
-        })
-        .or_else(|| {
-            steam_dir
-                .compat_tool_mapping()
-                .ok()
-                .and_then(|mapping| mapping.get(&app_id).cloned())
-                .and_then(|tool| {
-                    let tool_name = tool.name.clone()?;
-                    let proton_versions =
-                        steam_proton::find_all_versions(steam_dir.clone()).ok()?;
-                    proton_versions
-                        .into_iter()
-                        .find(|runner| runner.name == tool_name)
-                })
-        })
-        .or_else(|| {
-            log::info!(
-                "No runner configured for app {}, setting highest version",
-                app_id
-            );
-            let proton_versions = steam_proton::find_all_versions(steam_dir.clone()).ok()?;
-            let highest_runner = steam_proton::find_highest_version(&proton_versions)?;
-
-            let temp_game = SteamGame {
-                app_id,
-                name: name.clone(),
-                path: path.clone(),
-                prefix: prefix.clone(),
-                client_path: steam_dir_pathbuf.clone(),
-                runner: None,
-            };
-
-            if set_runner(&temp_game, &highest_runner.name).is_ok() {
-                log::info!(
-                    "Set runner to '{}' for app {}",
-                    highest_runner.pretty_name,
-                    app_id
-                );
-                Some(highest_runner.clone())
-            } else {
-                log::warn!("Failed to set runner for app {}", app_id);
-                None
-            }
-        });
-
     let steam_game = SteamGame {
         app_id,
         name,
         path,
         prefix,
         client_path: steam_dir_pathbuf,
-        runner,
+        runner: None,
     };
 
     Ok(steam_game)
+}
+
+pub fn select_runner(game: &SteamGame) -> Result<Runner> {
+    let steam_dir = steamlocate::SteamDir::from_dir(&game.client_path)?;
+    let versions = steam_proton::find_all_versions(steam_dir)?;
+    let selected = steam_proton::select_version(&versions)?;
+    set_runner(game, &selected.name).ok();
+    Ok(selected)
+}
+
+pub fn get_runner(game: &SteamGame) -> Result<Runner> {
+    let steam_dir = steamlocate::SteamDir::from_dir(&game.client_path)?;
+
+    if let Some(runner_name) = config_handler::read_value("runner").ok() {
+        log::info!("Runner specified in config: {runner_name}");
+        if let Ok(versions) = steam_proton::find_all_versions(steam_dir.clone()) {
+            if let Some(runner) = versions.into_iter().find(|r| r.name == runner_name) {
+                return Ok(runner);
+            }
+        }
+    }
+
+    if let Some(tool) = steam_dir
+        .compat_tool_mapping()
+        .ok()
+        .and_then(|m| m.get(&game.app_id).cloned())
+    {
+        if let Some(tool_name) = tool.name {
+            if let Ok(versions) = steam_proton::find_all_versions(steam_dir.clone()) {
+                if let Some(runner) = versions.into_iter().find(|r| r.name == tool_name) {
+                    return Ok(runner);
+                }
+            }
+        }
+    }
+
+    log::info!(
+        "No runner configured for app {}, using highest version",
+        game.app_id
+    );
+    let versions = steam_proton::find_all_versions(steam_dir)?;
+    steam_proton::find_highest_version(&versions)
+        .cloned()
+        .context("No Proton versions available")
 }
 
 pub fn run_in_prefix(

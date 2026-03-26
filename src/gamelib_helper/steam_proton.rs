@@ -1,7 +1,45 @@
 use anyhow::{bail, Context, Result};
+use dialoguer::theme::ColorfulTheme;
 use std::{fs, path::PathBuf};
 
 use crate::gamelib_helper::{Runner, Runtime};
+
+pub fn select_version(runners: &[Runner]) -> Result<Runner> {
+    if runners.is_empty() {
+        bail!("No Proton versions found");
+    }
+
+    let mut runners = runners.to_vec();
+    runners.sort_by(|a, b| {
+        let ver = |r: &Runner| -> f64 {
+            r.pretty_name
+                .split_whitespace()
+                .nth(1)
+                .and_then(|s| s.split('-').next()?.parse().ok())
+                .unwrap_or(0.0)
+        };
+        ver(b).total_cmp(&ver(a))
+    });
+
+    let choices: Vec<&str> = std::iter::once("Automatic (Recommended)")
+        .chain(runners.iter().map(|r| r.pretty_name.as_str()))
+        .collect();
+
+    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("Select a Proton version to use")
+        .default(0)
+        .items(&choices)
+        .interact()
+        .context("Proton selection failed")?;
+
+    if selection == 0 {
+        Ok(find_highest_version(&runners)
+            .context("No Proton versions available")?
+            .clone())
+    } else {
+        Ok(runners[selection - 1].clone())
+    }
+}
 
 fn get_runtime_appid(manifest_path: PathBuf) -> Result<u32> {
     let manifest_vdf =
@@ -43,7 +81,7 @@ fn get_runtime(runner: &Runner) -> Result<Runtime> {
     })
 }
 
-pub fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
+fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
     let compat_dirs = [
         steam_dir.path().join("compatibilitytools.d"),
         "/usr/share/steam/compatibilitytools.d".into(),
@@ -75,7 +113,6 @@ pub fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runn
 
     Ok(custom_runners)
 }
-
 
 pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
     let mut proton_versions: Vec<Runner> = Vec::new();
@@ -131,20 +168,19 @@ pub fn find_highest_version(versions: &[Runner]) -> Option<&Runner> {
                 .next()
                 .unwrap_or(version_parts[1]);
             match version_str.parse::<f64>() {
-                Ok(n) => ((n * 1000.0) as i64, 0), // Numeric version gets priority
+                Ok(n) => ((n * 1000.0) as i64, 0),
                 Err(_) => {
-                    // Non-numeric versions like "Experimental" get lower priority
                     if version_str.to_lowercase().contains("experimental") {
-                        (0, 2) // Treat "Experimental" as Proton 2.0
+                        (0, 2)
                     } else if version_str.to_lowercase().contains("hotfix") {
-                        (0, 1) // Treat "Hotfix" as Proton 1.0
+                        (0, 1)
                     } else {
-                        (0, 0) // Lowest priority for other non-numeric versions
+                        (0, 0)
                     }
                 }
             }
         } else {
-            (0, 0) // Default for unparseable names
+            (0, 0)
         }
     })
 }

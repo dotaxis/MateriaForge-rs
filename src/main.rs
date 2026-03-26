@@ -220,7 +220,7 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
                 Ok((original, remaster))
             })?;
 
-            game = match (original, remaster) {
+            let mut steam_game = match (original, remaster) {
                 (Some(og), Some(rm)) => {
                     let choices = &[&og.name, &format!("{} (2026)", rm.name)];
                     let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
@@ -231,15 +231,18 @@ fn run_install(found_game: &lib_game_detector::data::Game) -> Result<()> {
                         .context("Selection failed")?;
 
                     match selection {
-                        0 => Box::new(og),
-                        1 => Box::new(rm),
+                        0 => og,
+                        1 => rm,
                         _ => unreachable!(),
                     }
                 }
-                (Some(og), None) => Box::new(og),
-                (None, Some(rm)) => Box::new(rm),
+                (Some(og), None) => og,
+                (None, Some(rm)) => rm,
                 (None, None) => unreachable!(),
             };
+
+            steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
+            game = Box::new(steam_game);
         }
         SupportedLaunchers::HeroicGamesGOG => {
             config.insert("type", "gog".to_string());
@@ -449,8 +452,6 @@ fn install_7th(
         ),
         format!("/LOG={}", log_file),
     ];
-
-    // let runtime = steam_helper::game::get_game(SLR_APPID, steam_dir)?;
 
     game.run_in_prefix(exe_path, Some(args))
         .context("Couldn't run 7th Heaven installer")?;
