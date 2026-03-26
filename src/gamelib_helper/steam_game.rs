@@ -127,13 +127,6 @@ pub fn run_in_prefix(
         .with_context(|| format!("Couldn't find proton for game: {game:#?}"))?;
     log::info!("Proton bin: {}", proton.path.display());
 
-    let runtime = proton
-        .runtime
-        .clone()
-        .with_context(|| format!("Couldn't find Steam Linux Runtime for proton: {proton:#?}"))?;
-    let runtime_path = runtime.path.join("run");
-    log::info!("{} path: {runtime_path:?}", runtime.name);
-
     log::info!("Prefix: {}", game.prefix.display());
 
     // Build STEAM_COMPAT_MOUNTS
@@ -147,8 +140,10 @@ pub fn run_in_prefix(
         game.client_path.clone(),
         ancestor(&game.path, 3),
         ancestor(&proton.path, 4),
-        ancestor(&runtime.path, 4),
     ];
+    if let Some(runtime) = &proton.runtime {
+        mount_paths.push(ancestor(&runtime.path, 4));
+    }
     mount_paths.extend(
         std::env::var("STEAM_COMPAT_MOUNTS")
             .unwrap_or_default()
@@ -171,7 +166,18 @@ pub fn run_in_prefix(
     // Trick Proton into making the S: drive contain steamapps
     let library_path = ancestor(&game.path, 3).display().to_string();
 
-    command = Command::new(runtime_path);
+    // Allow launching without runtime for runners that don't need one
+    command = if let Some(runtime) = &proton.runtime {
+        let runtime_path = runtime.path.join("run");
+        log::info!("{} path: {runtime_path:?}", runtime.name);
+        let mut cmd = Command::new(runtime_path);
+        cmd.arg("--").arg(&proton.path);
+        cmd
+    } else {
+        log::info!("No runtime required, launching proton directly");
+        Command::new(&proton.path)
+    };
+
     command
         .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
@@ -188,8 +194,6 @@ pub fn run_in_prefix(
         .envs(config_handler::read_env_vars())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
-        .arg("--")
-        .arg(proton.path)
         .arg("waitforexitandrun")
         .arg(&exe_to_launch);
     let args = args.unwrap_or_default();

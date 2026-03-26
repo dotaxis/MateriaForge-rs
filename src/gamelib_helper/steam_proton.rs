@@ -60,13 +60,18 @@ fn get_runtime_appid(manifest_path: PathBuf) -> Result<u32> {
         .context("Failed to parse require_tool_appid as u32")
 }
 
-fn get_runtime(runner: &Runner) -> Result<Runtime> {
+fn get_runtime(runner: &Runner) -> Result<Option<Runtime>> {
     let manifest_path = runner
         .path
         .parent()
         .context("Runner path has no parent")?
         .join("toolmanifest.vdf");
-    let runtime_appid = get_runtime_appid(manifest_path)?;
+
+    let runtime_appid = match get_runtime_appid(manifest_path) {
+        Ok(id) => id,
+        Err(_) => return Ok(None), // No require_tool_appid key = no runtime required
+    };
+
     let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
     let (app, library) = steam_dir
         .find_app(runtime_appid)?
@@ -74,11 +79,11 @@ fn get_runtime(runner: &Runner) -> Result<Runtime> {
     let path = library.resolve_app_dir(&app);
     let name = app.name.as_ref().context("No app name?")?.to_string();
 
-    Ok(Runtime {
+    Ok(Some(Runtime {
         name: name.clone(),
         pretty_name: name,
         path,
-    })
+    }))
 }
 
 fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
@@ -104,7 +109,7 @@ fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>>
                     path: runner_path,
                     runtime: None,
                 };
-                runner.runtime = get_runtime(&runner).ok();
+                runner.runtime = get_runtime(&runner)?;
 
                 custom_runners.push(runner);
             }
@@ -135,7 +140,7 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         path: app_path,
                         runtime: None,
                     };
-                    runner.runtime = get_runtime(&runner).ok();
+                    runner.runtime = get_runtime(&runner)?;
 
                     proton_versions.push(runner);
                 } else {
