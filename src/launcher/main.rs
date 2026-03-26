@@ -14,7 +14,24 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
         log::info!("No runner found for game");
     }
 
-    game.run_in_prefix(exe, None)
+    let cli_args: Vec<String> = env::args().skip(1).collect();
+    let args = if cli_args.is_empty() {
+        config_handler::read_value("launch_args")
+            .unwrap_or_else(|_| "".to_string())
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect()
+    } else {
+        cli_args
+    };
+
+    if args.is_empty() {
+        log::info!("No launch arguments provided");
+    } else {
+        log::info!("Launch arguments: {:?}", args);
+    }
+
+    game.run_in_prefix(exe, Some(args))
         .context("Failed to launch 7th Heaven")?;
     Ok(())
 }
