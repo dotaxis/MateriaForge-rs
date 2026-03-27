@@ -168,14 +168,7 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
         prefix = prefix.join("pfx");
 
         // Try to get umu location
-        let ancestor = |path: &Path, levels: usize| -> PathBuf {
-            (0..levels)
-                .fold(Some(path), |p, _| p.and_then(Path::parent))
-                .map(Path::to_path_buf)
-                .unwrap_or_default()
-        };
-
-        let umu_bin = ancestor(&runner.path, 3).join("runtimes/umu/umu-run");
+        let umu_bin = heroic_config_path.join("tools/runtimes/umu/umu-run");
         if umu_bin.is_file() {
             log::info!("Found umu runtime at {}", umu_bin.display());
             runner.runtime = Some(Runtime {
