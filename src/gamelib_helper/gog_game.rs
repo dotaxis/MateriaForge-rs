@@ -48,41 +48,41 @@ pub fn run_in_prefix(
     let wine = game
         .runner
         .clone()
-        .with_context(|| format!("Couldn't find wine for game: {game:#?}"))?;
+        .with_context(|| format!("Couldn't find runner for game: {game:#?}"))?;
     log::info!("Using runner: {}", wine.pretty_name);
     log::info!("Runner bin: {}", wine.path.display());
     log::info!("Wine prefix: {}", game.prefix.display());
     log::info!("Using umu runtime: {}", wine.runtime.is_some());
 
-    let mut command: Command;
-    // TODO: Clean this up for the love of god
-    if let Some(umu) = wine.runtime {
-        command = Command::new(&umu.path);
-        command.env("WINEPREFIX", &game.prefix).env(
-            "PROTONPATH",
-            &wine
-                .path
-                .parent()
-                .context("Failed to get parent of wine path")?,
-        );
-    } else {
-        command = Command::new(&wine.path);
-        match wine.name.as_str() {
-            "wine" => {
-                command.env("WINEPREFIX", &game.prefix);
-            }
-            "proton" => {
-                if !wine.pretty_name.contains("GE") {
-                    bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
-                }
-                command
-                    .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
-                    .env("SteamGameId", "0")
-                    .arg("runinprefix");
-            }
-            _ => bail!("Unknown runner type: {}", wine.name),
+    let mut command = match (&wine.runtime, wine.name.as_str()) {
+        (Some(umu), _) => {
+            let mut cmd = Command::new(&umu.path);
+            cmd.env("WINEPREFIX", &game.prefix).env(
+                "PROTONPATH",
+                &wine
+                    .path
+                    .parent()
+                    .context("Failed to get parent of wine path")?,
+            );
+            cmd
         }
-    }
+        (None, "wine") => {
+            let mut cmd = Command::new(&wine.path);
+            cmd.env("WINEPREFIX", &game.prefix);
+            cmd
+        }
+        (None, "proton") => {
+            let mut cmd = Command::new(&wine.path);
+            if !wine.pretty_name.contains("GE") {
+                bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
+            }
+            cmd.env("STEAM_COMPAT_DATA_PATH", &game.prefix)
+                .env("SteamGameId", "0")
+                .arg("runinprefix");
+            cmd
+        }
+        (None, other) => bail!("Unknown runner type: {other}"),
+    };
     command
         .env("WINEDLLOVERRIDES", "dinput=n,b")
         .envs(config_handler::read_env_vars())
@@ -94,6 +94,7 @@ pub fn run_in_prefix(
         log::info!("run_in_prefix arg: {arg}");
         command.arg(arg);
     }
+
     let mut child = command.spawn()?;
     log::info!(
         "Launched {}",
