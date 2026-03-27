@@ -1,5 +1,5 @@
 use crate::config_handler;
-use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner};
+use crate::gamelib_helper::{spawn_wine_log_threads, Game, PrefixRunner, Runner, Runtime};
 use anyhow::{bail, Context, Result};
 use serde_json::Value;
 use std::{
@@ -52,35 +52,43 @@ pub fn run_in_prefix(
     log::info!("Using runner: {}", wine.pretty_name);
     log::info!("Runner bin: {}", wine.path.display());
     log::info!("Wine prefix: {}", game.prefix.display());
+    log::info!("Using umu runtime: {}", wine.runtime.is_some());
 
     let mut command: Command;
-    command = Command::new(&wine.path);
-    match wine.name.as_str() {
-        "wine" => {
-            command
-                .env("WINEPREFIX", &game.prefix)
-                .env("WINEDLLOVERRIDES", "dinput=n,b")
-                .envs(config_handler::read_env_vars())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .arg(&exe_to_launch);
-        }
-        "proton" => {
-            if !wine.pretty_name.contains("GE") {
-                bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
+    // TODO: Clean this up for the love of god
+    if let Some(umu) = wine.runtime {
+        command = Command::new(&umu.path);
+        command.env("WINEPREFIX", &game.prefix).env(
+            "PROTONPATH",
+            &wine
+                .path
+                .parent()
+                .context("Failed to get parent of wine path")?,
+        );
+    } else {
+        command = Command::new(&wine.path);
+        match wine.name.as_str() {
+            "wine" => {
+                command.env("WINEPREFIX", &game.prefix);
             }
-            command
-                .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
-                .env("SteamGameId", "0")
-                .env("WINEDLLOVERRIDES", "dinput=n,b")
-                .envs(config_handler::read_env_vars())
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .arg("runinprefix")
-                .arg(&exe_to_launch);
+            "proton" => {
+                if !wine.pretty_name.contains("GE") {
+                    bail!("Found proton runner, but it doesn't seem to be GE-Proton. Runner: {wine:?}");
+                }
+                command
+                    .env("STEAM_COMPAT_DATA_PATH", &game.prefix)
+                    .env("SteamGameId", "0")
+                    .arg("runinprefix");
+            }
+            _ => bail!("Unknown runner type: {}", wine.name),
         }
-        _ => bail!("Unknown runner type: {}", wine.name),
     }
+    command
+        .env("WINEDLLOVERRIDES", "dinput=n,b")
+        .envs(config_handler::read_env_vars())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .arg(&exe_to_launch);
     let args = args.unwrap_or_default();
     for arg in args {
         log::info!("run_in_prefix arg: {arg}");
@@ -136,9 +144,7 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
         .and_then(Value::as_object)
         .context("GOG game JSON missing wineVersion")?;
 
-    // println!("GOG Game JSON: {:#?}", json);
-
-    let runner = Runner {
+    let mut runner = Runner {
         name: wine_version
             .get("type")
             .and_then(Value::as_str)
@@ -159,8 +165,25 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
     };
 
     if runner.name == "proton" {
-        // runner.path = runner.path.parent().unwrap().join("files/bin/wine");
         prefix = prefix.join("pfx");
+
+        // Try to get umu location
+        let ancestor = |path: &Path, levels: usize| -> PathBuf {
+            (0..levels)
+                .fold(Some(path), |p, _| p.and_then(Path::parent))
+                .map(Path::to_path_buf)
+                .unwrap_or_default()
+        };
+
+        let umu_bin = ancestor(&runner.path, 3).join("runtimes/umu/umu-run");
+        if umu_bin.is_file() {
+            log::info!("Found umu runtime at {}", umu_bin.display());
+            runner.runtime = Some(Runtime {
+                name: "umu".to_string(),
+                pretty_name: "umu".to_string(),
+                path: umu_bin,
+            });
+        }
     }
 
     Ok(GogGame {
