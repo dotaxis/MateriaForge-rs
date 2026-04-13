@@ -61,7 +61,7 @@ pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Resul
     let file_dir = file
         .parent()
         .with_context(|| format!("Couldn't get parent of {file:?}"))?;
-    let uid = users::get_current_uid();
+    let uid = uzers::get_current_uid();
     let mut tmp = PathBuf::from("/tmp");
     let mut steam_args: Vec<&str> = vec![];
     let steam_bin = match steam_dir

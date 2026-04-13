@@ -60,6 +60,14 @@ jobs:
         key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-build-
+    - name: Cargo Audit check
+      uses: rustsec/audit-check@v2.0.0
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Cargo Deny check
+      uses: EmbarkStudios/cargo-deny-action@v2
+      with:
+        command: check advisories bans sources
     - name: Build
       run: ".github/workflows/build.sh"
       shell: bash
