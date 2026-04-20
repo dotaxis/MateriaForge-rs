@@ -54,9 +54,20 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
         .with_context(|| format!("Couldn't find app with ID {}", app_id))?;
     let path = library.resolve_app_dir(&app);
     let name = app.name.context("No app name?")?.to_string();
-    let prefix = library
-        .path()
-        .join(format!("steamapps/compatdata/{app_id}/pfx"));
+
+    // Search all libraries for compatdata (Steam may place it on a different
+    // drive than the game itself, e.g. internal drive vs SD card)
+    let prefix = steam_dir
+        .libraries()?
+        .flatten()
+        .map(|lib| lib.path().join(format!("steamapps/compatdata/{app_id}/pfx")))
+        .find(|p| p.exists())
+        .unwrap_or_else(|| {
+            // Fall back to the game's library if compatdata hasn't been created yet
+            library
+                .path()
+                .join(format!("steamapps/compatdata/{app_id}/pfx"))
+        });
 
     let steam_game = SteamGame {
         app_id,
