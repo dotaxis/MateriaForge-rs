@@ -488,12 +488,7 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         game.prefix().join("drive_c/windows/system32"),
         resource_handler::TIMEOUT_EXE,
     );
-    std::fs::write(&timeout_exe.destination, timeout_exe.contents).with_context(|| {
-        format!(
-            "Couldn't write {} to {:?}",
-            timeout_exe.name, timeout_exe.destination
-        )
-    })?;
+    timeout_exe.write_if_missing()?;
 
     // Patch settings.xml and send to install_path
     let mut settings_xml = resource_handler::as_str(
@@ -548,8 +543,7 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         .replace("FF7_VERSION", ff7_version)
         .replace("UPDATE_CHANNEL", update_channel);
 
-    std::fs::write(&settings_xml.destination, settings_xml.contents)
-        .with_context(|| format!("Couldn't write to {:?}", settings_xml.destination))?;
+    settings_xml.write()?;
 
     // Send dxvk.conf to install_path
     let dxvk_conf = resource_handler::as_str(
@@ -557,8 +551,7 @@ fn patch_install(install_path: &Path, game: &dyn PrefixedGame, update_channel: &
         install_path.to_path_buf(),
         resource_handler::DXVK_CONF,
     );
-    std::fs::write(&dxvk_conf.destination, dxvk_conf.contents)
-        .with_context(|| format!("Couldn't write to {:?}", dxvk_conf.destination))?;
+    dxvk_conf.write()?;
 
     Ok(())
 }
@@ -595,12 +588,7 @@ fn create_shortcuts(
         .contents
         .replace("(VER)", &shortcut_identifier);
 
-    std::fs::write(&shortcut_file.destination, &shortcut_file.contents).with_context(|| {
-        format!(
-            "Couldn't write {} to {:?}",
-            shortcut_file.name, shortcut_file.destination
-        )
-    })?;
+    shortcut_file.write()?;
 
     // Icon
     let xdg_cache = xdg::BaseDirectories::new()
@@ -611,12 +599,7 @@ fn create_shortcuts(
         xdg_cache,
         resource_handler::LOGO_PNG,
     );
-    std::fs::write(&logo_png.destination, &logo_png.contents).with_context(|| {
-        format!(
-            "Couldn't write {} to {:?}",
-            logo_png.name, logo_png.destination
-        )
-    })?;
+    logo_png.write()?;
     std::process::Command::new("xdg-icon-resource")
         .args([
             "install",
@@ -644,12 +627,7 @@ fn create_shortcuts(
                 .join("Desktop");
             println!("{} Adding Desktop shortcut.", console::style("!").yellow());
             let desktop_shortcut_path = desktop_dir.join(&shortcut_file.name);
-            std::fs::write(&desktop_shortcut_path, shortcut_file.contents).with_context(|| {
-                format!(
-                    "Couldn't write {} to {:?}",
-                    shortcut_file.name, desktop_shortcut_path
-                )
-            })?;
+            shortcut_file.write_to(&desktop_shortcut_path)?;
         }
         _ => {
             term.clear_last_lines(1)?;
@@ -727,14 +705,7 @@ fn add_controller_config(
             dir.path().join("controller_base/templates/"),
             resource_handler::CONTROLLER_PROFILE,
         );
-        std::fs::write(&controller_vdf.destination, controller_vdf.contents).with_context(
-            || {
-                format!(
-                    "Couldn't write {} to {:?}",
-                    controller_vdf.name, controller_vdf.destination
-                )
-            },
-        )?;
+        controller_vdf.write()?;
         gamelib_helper::steam_lib::set_controller_config(dir, game.app_id(), steam_shortcut)?;
     }
 
