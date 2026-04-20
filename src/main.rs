@@ -40,6 +40,8 @@ fn main() {
         eprintln!("Fatal: {e}");
         std::process::exit(1);
     }
+    log::info!("Starting MateriaForge version {}", VERSION);
+    log::info!("Running on Steam Deck: {}", *IS_DECK);
 
     draw_header();
 

@@ -1,3 +1,5 @@
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 use anyhow::{bail, Context, Result};
 use lib_game_detector::data::SupportedLaunchers;
 use std::{env, path::Path};
@@ -38,6 +40,7 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
 
 fn main() -> Result<()> {
     logging::init("launcher.log")?;
+    log::info!("Starting MateriaForge version {}", VERSION);
 
     let launcher_bin = env::current_exe().context("Failed to get binary path")?;
     let launcher_dir = launcher_bin
