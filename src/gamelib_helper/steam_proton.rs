@@ -73,9 +73,10 @@ fn get_runtime(runner: &Runner) -> Result<Option<Runtime>> {
     };
 
     let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
-    let (app, library) = steam_dir
-        .find_app(runtime_appid)?
-        .with_context(|| format!("Couldn't find runtime app with ID {}", runtime_appid))?;
+    let Some((app, library)) = steam_dir.find_app(runtime_appid)? else {
+        log::warn!("Runtime app {runtime_appid} not installed, launching without runtime");
+        return Ok(None);
+    };
     let path = library.resolve_app_dir(&app);
     let name = app.name.as_ref().context("No app name?")?.to_string();
 
