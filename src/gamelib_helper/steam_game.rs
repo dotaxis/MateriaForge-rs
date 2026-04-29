@@ -140,6 +140,17 @@ pub fn run_in_prefix(
 
     log::info!("Prefix: {}", game.prefix.display());
 
+    // Write steam_appid.txt next to the exe so SteamAPI_Init() can find the
+    // app ID even when launched outside a real Steam app session (e.g. non-Steam shortcut).
+    if let Some(exe_dir) = exe_to_launch.parent() {
+        let appid_file = exe_dir.join("steam_appid.txt");
+        if let Err(e) = fs::write(&appid_file, game.app_id.to_string()) {
+            log::warn!("Failed to write steam_appid.txt: {e}");
+        } else {
+            log::info!("Wrote steam_appid.txt: {}", appid_file.display());
+        }
+    }
+
     // Build STEAM_COMPAT_MOUNTS
     let ancestor = |path: &Path, levels: usize| -> PathBuf {
         (0..levels)
