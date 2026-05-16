@@ -60,7 +60,10 @@ pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGa
     let prefix = steam_dir
         .libraries()?
         .flatten()
-        .map(|lib| lib.path().join(format!("steamapps/compatdata/{app_id}/pfx")))
+        .map(|lib| {
+            lib.path()
+                .join(format!("steamapps/compatdata/{app_id}/pfx"))
+        })
         .find(|p| p.exists())
         .unwrap_or_else(|| {
             // Fall back to the game's library if compatdata hasn't been created yet
