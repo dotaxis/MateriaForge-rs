@@ -8,6 +8,7 @@ use materia_forge::gamelib_helper::{Game, PrefixRunner};
 use materia_forge::{config_handler, gamelib_helper, logging};
 
 static FF7_GOG_APPID: u32 = 1698970154;
+static FF8_APPID: u32 = 39150;
 
 fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<()> {
     if let Some(runner) = game.runner() {
@@ -34,7 +35,7 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
     }
 
     game.run_in_prefix(exe, Some(args))
-        .context("Failed to launch 7th Heaven")?;
+        .context("Failed to launch mod loader")?;
     Ok(())
 }
 
@@ -42,19 +43,38 @@ fn main() -> Result<()> {
     logging::init("launcher.log")?;
     log::info!("Starting MateriaForge version {}", VERSION);
 
+    let install_type = config_handler::read_value("type")
+        .unwrap_or_else(|_| "steam".to_string())
+        .to_lowercase();
+    let app_id = config_handler::read_value("app_id")
+        .ok()
+        .and_then(|value| value.parse::<u32>().ok());
+    let install_target = config_handler::read_value("target")
+        .unwrap_or_else(|_| {
+            if app_id == Some(FF8_APPID) {
+                "ff8".to_string()
+            } else {
+                "ff7".to_string()
+            }
+        })
+        .to_lowercase();
+
     let launcher_bin = env::current_exe().context("Failed to get binary path")?;
     let launcher_dir = launcher_bin
         .parent()
         .context("Failed to get binary directory")?;
-    let seventh_heaven_exe = launcher_dir.join("7th Heaven.exe");
+    let loader_exe = if install_target == "ff8" {
+        launcher_dir.join("Junction VIII.exe")
+    } else {
+        launcher_dir.join("7th Heaven.exe")
+    };
 
-    if !seventh_heaven_exe.exists() {
-        bail!("Couldn't find '7th Heaven.exe'!");
+    if !loader_exe.exists() {
+        bail!(
+            "Couldn't find loader executable at '{}'",
+            loader_exe.display()
+        );
     }
-
-    let install_type = config_handler::read_value("type")
-        .unwrap_or_else(|_| "steam".to_string())
-        .to_lowercase();
 
     match install_type.as_str() {
         "gog" => {
@@ -67,7 +87,7 @@ fn main() -> Result<()> {
                 .unwrap();
             let game = gamelib_helper::gog_game::get_game(FF7_GOG_APPID, &heroic_game)
                 .context("Configured type=gog, but GOG game was not found")?;
-            run_exe(&game, seventh_heaven_exe)?;
+            run_exe(&game, loader_exe)?;
         }
         _ => {
             let steam_dir_str = config_handler::read_value("steam_dir")
@@ -82,7 +102,7 @@ fn main() -> Result<()> {
             let mut game = gamelib_helper::steam_game::get_game(app_id.parse()?, steam_dir.clone())
                 .context(format!("Couldn't find {} in Steam library", app_id))?;
             game.runner = Some(gamelib_helper::steam_game::get_runner(&game)?);
-            run_exe(&game, seventh_heaven_exe)?;
+            run_exe(&game, loader_exe)?;
         }
     }
 

@@ -128,6 +128,7 @@ pub fn set_controller_config(
         39140 => ("(2013)", false),
         3837340 => ("(2026)", false),
         1698970154 => ("(gog)", true),
+        39150 => ("", false),
         _ => ("(unknown)", false),
     };
     let template = "controller_neptune_gamepad+mouse+click.vdf";
@@ -147,8 +148,13 @@ pub fn set_controller_config(
         ));
     }
     if steam_shortcut {
+        let shortcut_name = if app_id == 39150 {
+            "launch junction viii".to_string()
+        } else {
+            format!("launch 7th heaven {shortcut_id}")
+        };
         entries.push(format!(
-            r#"	"launch 7th heaven {shortcut_id}"
+            r#"\t"{shortcut_name}"
 	{{
 		"template"		"{template}"
 	}}"#
@@ -162,6 +168,7 @@ pub fn set_controller_config(
     let remove_7h_re = Regex::new(&format!(
         r#"[ \t]*"launch 7th heaven {escaped_id}"[^\{{]*\{{[^\}}]*\}}[ \t]*"#
     ))?;
+    let remove_j8_re = Regex::new(r#"[ \t]*"launch junction viii"[^\{]*\{[^\}]*\}[ \t]*"#)?;
     let blank_lines_re = Regex::new(r"\n([ \t]*\n)+")?;
 
     let inject_re = Regex::new(r#""controller_config"\s*\{"#)?;
@@ -176,6 +183,7 @@ pub fn set_controller_config(
 
         let content = remove_app_re.replace_all(&content, "").to_string();
         let content = remove_7h_re.replace_all(&content, "").to_string();
+        let content = remove_j8_re.replace_all(&content, "").to_string();
         let content = blank_lines_re.replace_all(&content, "\n").to_string();
         let content = inject_re.replace(&content, &replacement).to_string();
         std::fs::write(&path, content.as_bytes())
