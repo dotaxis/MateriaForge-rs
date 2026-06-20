@@ -71,7 +71,7 @@ impl GameInstaller for FF8Installer {
         let mut settings_xml = resource_handler::as_str(
             "settings.xml".to_string(),
             install_path.join("J8Workshop"),
-            resource_handler::JUNCTION_SETTINGS_XML,
+            resource_handler::JUNCTION_VIII_SETTINGS_XML,
         );
         let full = game.path().join("FF8_en.exe").to_string_lossy().to_string();
         let trimmed = full

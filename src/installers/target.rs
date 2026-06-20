@@ -53,8 +53,8 @@ impl InstallTarget {
 
     pub fn desktop_template(self) -> &'static str {
         match self {
-            Self::FF7 => resource_handler::SHORTCUT_FILE,
-            Self::FF8 => resource_handler::JUNCTION_SHORTCUT_FILE,
+            Self::FF7 => resource_handler::SEVENTH_HEAVEN_SHORTCUT_FILE,
+            Self::FF8 => resource_handler::JUNCTION_VIII_SHORTCUT_FILE,
         }
     }
 

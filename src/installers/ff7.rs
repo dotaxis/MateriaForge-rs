@@ -142,7 +142,7 @@ impl GameInstaller for FF7Installer {
         let mut settings_xml = resource_handler::as_str(
             "settings.xml".to_string(),
             install_path.join("7thWorkshop"),
-            resource_handler::SETTINGS_XML,
+            resource_handler::SEVENTH_HEAVEN_SETTINGS_XML,
         );
 
         let ff7_version = match game.app_id() {
