@@ -35,7 +35,7 @@ jobs:
         git config --global core.filemode false
         git config --global core.longpaths true
     - name: Checkout
-      uses: actions/checkout@v4.1.0
+      uses: actions/checkout@v7
     - name: Setup Rust toolchain
       uses: dtolnay/rust-toolchain@stable
     - name: Install system dependencies
@@ -43,7 +43,7 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y libwayland-dev libxkbcommon-dev libegl1-mesa-dev
     - name: Cache Cargo registry
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: |
           ~/.cargo/bin/
@@ -54,7 +54,7 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-cargo-registry-
     - name: Cache Cargo build
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: target/
         key: ${{ runner.os }}-cargo-build-${{ hashFiles('**/Cargo.lock') }}
@@ -76,21 +76,21 @@ jobs:
         GITHUB_PACKAGES_PAT: ${{ secrets.GITHUB_TOKEN }}
     - name: Publish PR artifacts
       if: env._IS_GITHUB_RELEASE == 'false' && success()
-      uses: actions/upload-artifact@v4.0.0
+      uses: actions/upload-artifact@v7
       with:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         path: ".dist/*.zip"
     - name: VirusTotal Scan
       id: vt-scan
       if: env._IS_GITHUB_RELEASE == 'true' && success()
-      uses: crazy-max/ghaction-virustotal@v4
+      uses: crazy-max/ghaction-virustotal@v5
       with:
         vt_api_key: ${{ secrets._VT_API_KEY }}
         files: ".dist/*.zip"
     - name: Parse VirusTotal Results
       id: vt-res
       if: env._IS_GITHUB_RELEASE == 'true' && success()
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       with:
         result-encoding: string
         script: |
@@ -106,7 +106,7 @@ jobs:
 
           return ret;
     - name: Move canary tag to this commit
-      uses: richardsimko/update-tag@v1
+      uses: richardsimko/update-tag@v2
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
       with:
         tag_name: canary
