@@ -14,7 +14,7 @@ use crate::{
     resource_handler,
 };
 
-use super::target::{shortcut_identifier, InstallTarget, FF7_GOG_APPID};
+use super::target::{InstallTarget, FF7_GOG_APPID};
 
 pub fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();
@@ -77,7 +77,7 @@ pub fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Res
     Ok(file_path)
 }
 
-pub fn get_install_path(target: InstallTarget) -> Result<PathBuf> {
+pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
     let term = console::Term::stdout();
     println!(
         "{} Select a destination for {}.",
@@ -185,7 +185,7 @@ pub fn ensure_wine_user_slot(base_dir: &Path, default_user_dir: &str) -> Result<
 }
 
 pub fn install_loader(
-    target: InstallTarget,
+    target: &dyn InstallTarget,
     game: &dyn PrefixedGame,
     exe_path: PathBuf,
     install_path: &Path,
@@ -225,11 +225,7 @@ pub fn install_loader(
         "launcher"
     };
 
-    let shortcut_identifier = shortcut_identifier(game.app_id());
-    let launcher_name = match target {
-        InstallTarget::FF7 => format!("{} {}", target.launch_binary_name(), shortcut_identifier),
-        InstallTarget::FF8 => target.launch_binary_name().to_string(),
-    };
+    let launcher_name = target.launch_binary_with_identifier(game.app_id());
 
     fs::copy(launcher_path, install_path.join(launcher_name))
         .expect("Failed to copy launcher to install_path");
@@ -256,7 +252,7 @@ pub fn write_common_patch_files(install_path: &Path, game: &dyn PrefixedGame) ->
 }
 
 pub fn create_shortcuts(
-    target: InstallTarget,
+    target: &dyn InstallTarget,
     install_path: &Path,
     steam_dir: Option<steamlocate::SteamDir>,
     app_id: u32,
@@ -266,10 +262,10 @@ pub fn create_shortcuts(
         .context("Couldn't get xdg_data_home")?
         .join("applications");
 
-    let shortcut_identifier = shortcut_identifier(app_id);
+    let shortcut_identifier = target.shortcut_identifier(app_id);
 
     let mut shortcut_file = resource_handler::as_str(
-        target.desktop_file_name(shortcut_identifier),
+        target.desktop_file_name(app_id),
         applications_dir,
         target.desktop_template(),
     );
@@ -338,12 +334,7 @@ pub fn create_shortcuts(
             steam_shortcut = true;
             term.clear_last_lines(1)?;
             println!("{} Adding Steam shortcut.", console::style("!").yellow());
-            let launch_binary = match target {
-                InstallTarget::FF7 => {
-                    format!("{} {}", target.launch_binary_name(), shortcut_identifier)
-                }
-                InstallTarget::FF8 => target.launch_binary_name().to_string(),
-            };
+            let launch_binary = target.launch_binary_with_identifier(app_id);
             gamelib_helper::steam_lib::add_nonsteam_game(&install_path.join(launch_binary), dir)?;
         } else {
             term.clear_last_lines(1)?;

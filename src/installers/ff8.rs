@@ -12,13 +12,58 @@ use super::{
     target::{InstallTarget, FF8_APPID},
 };
 
+pub struct FF8Target;
+pub static TARGET: FF8Target = FF8Target;
+
+impl InstallTarget for FF8Target {
+    fn target_key(&self) -> &'static str {
+        "ff8"
+    }
+
+    fn mod_loader_name(&self) -> &'static str {
+        "Junction VIII"
+    }
+
+    fn mod_loader_repo(&self) -> &'static str {
+        "tsunamods-codes/Junction-VIII"
+    }
+
+    fn install_log_name(&self) -> &'static str {
+        "JunctionVIII.log"
+    }
+
+    fn launch_binary_name(&self) -> &'static str {
+        "Launch Junction VIII"
+    }
+
+    fn desktop_template(&self) -> &'static str {
+        resource_handler::JUNCTION_VIII_SHORTCUT_FILE
+    }
+
+    fn desktop_file_name(&self, _app_id: u32) -> String {
+        "Junction VIII.desktop".to_string()
+    }
+
+    fn icon_name(&self) -> &'static str {
+        "Junction-VIII"
+    }
+
+    fn icon_file_name(&self) -> &'static str {
+        "Junction-VIII.png"
+    }
+
+    fn icon_bytes(&self) -> &'static [u8] {
+        resource_handler::JUNCTION_LOGO_PNG
+    }
+}
+
 pub struct FF8Installer;
 
 pub const INSTALLER: FF8Installer = FF8Installer;
 
 impl GameInstaller for FF8Installer {
-    fn target(&self) -> InstallTarget {
-        InstallTarget::FF8
+    fn target(&self) -> &'static dyn InstallTarget {
+        &TARGET
     }
 
     fn menu_label(&self) -> &'static str {

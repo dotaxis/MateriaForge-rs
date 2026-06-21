@@ -13,13 +13,67 @@ use super::{
     target::{InstallTarget, FF7_2026_APPID, FF7_APPID, FF7_GOG_APPID},
 };
 
+pub struct FF7Target;
+pub static TARGET: FF7Target = FF7Target;
+
+impl InstallTarget for FF7Target {
+    fn target_key(&self) -> &'static str {
+        "ff7"
+    }
+
+    fn mod_loader_name(&self) -> &'static str {
+        "7th Heaven"
+    }
+
+    fn mod_loader_repo(&self) -> &'static str {
+        "tsunamods-codes/7th-Heaven"
+    }
+
+    fn install_log_name(&self) -> &'static str {
+        "7thHeaven.log"
+    }
+
+    fn launch_binary_name(&self) -> &'static str {
+        "Launch 7th Heaven"
+    }
+
+    fn desktop_template(&self) -> &'static str {
+        resource_handler::SEVENTH_HEAVEN_SHORTCUT_FILE
+    }
+
+    fn desktop_file_name(&self, app_id: u32) -> String {
+        format!("7th Heaven {}.desktop", self.shortcut_identifier(app_id))
+    }
+
+    fn icon_name(&self) -> &'static str {
+        "7th-heaven"
+    }
+
+    fn icon_file_name(&self) -> &'static str {
+        "7th-heaven.png"
+    }
+
+    fn icon_bytes(&self) -> &'static [u8] {
+        resource_handler::LOGO_PNG
+    }
+
+    fn shortcut_identifier(&self, app_id: u32) -> &'static str {
+        match app_id {
+            FF7_APPID => "(2013)",
+            FF7_2026_APPID => "(2026)",
+            FF7_GOG_APPID => "(GOG)",
+            _ => "",
+        }
+    }
+}
+
 pub struct FF7Installer;
 
 pub const INSTALLER: FF7Installer = FF7Installer;
 
 impl GameInstaller for FF7Installer {
-    fn target(&self) -> InstallTarget {
-        InstallTarget::FF7
+    fn target(&self) -> &'static dyn InstallTarget {
+        &TARGET
     }
 
     fn menu_label(&self) -> &'static str {

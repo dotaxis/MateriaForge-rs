@@ -18,7 +18,7 @@ impl Detection {
 }
 
 pub trait GameInstaller {
-    fn target(&self) -> InstallTarget;
+    fn target(&self) -> &'static dyn InstallTarget;
     fn menu_label(&self) -> &'static str;
     fn detect(&self, installs: &[DetectedGame]) -> Detection;
     fn choose_detected_index(
