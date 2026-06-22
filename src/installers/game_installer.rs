@@ -28,7 +28,11 @@ pub trait GameInstaller {
     ) -> Result<Option<usize>>;
 
     fn steam_search_label(&self) -> &'static str;
-    fn resolve_steam_game(&self, steam_dir: steamlocate::SteamDir) -> Result<SteamGame>;
+    fn resolve_steam_game(
+        &self,
+        steam_dir: steamlocate::SteamDir,
+        preferred_app_id: Option<u32>,
+    ) -> Result<SteamGame>;
 
     fn resolve_nonsteam_game(
         &self,

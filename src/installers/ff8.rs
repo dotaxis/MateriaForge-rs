@@ -8,9 +8,12 @@ use crate::{
 
 use super::{
     common,
+    detected_app_id,
     game_installer::{Detection, GameInstaller},
-    target::{InstallTarget, FF8_APPID},
+    target::InstallTarget,
 };
+
+pub(super) const FF8_APPID: u32 = 39150;
 
 pub struct FF8Target;
 pub static TARGET: FF8Target = FF8Target;
@@ -61,6 +64,10 @@ pub struct FF8Installer;
 
 pub const INSTALLER: FF8Installer = FF8Installer;
 
+fn is_ff8_steam_app_id(app_id: u32) -> bool {
+    app_id == FF8_APPID
+}
+
 impl GameInstaller for FF8Installer {
     fn target(&self) -> &'static dyn InstallTarget {
         &TARGET
@@ -72,9 +79,8 @@ impl GameInstaller for FF8Installer {
 
     fn detect(&self, installs: &[DetectedGame]) -> Detection {
         let steam_index = installs.iter().position(|game| {
-            let title = game.title.to_lowercase();
-            (title.contains("final fantasy viii") || title.contains("final fantasy 8"))
-                && game.source == SupportedLaunchers::Steam
+            game.source == SupportedLaunchers::Steam
+                && detected_app_id(game).is_some_and(is_ff8_steam_app_id)
         });
 
         Detection {
@@ -98,6 +104,7 @@ impl GameInstaller for FF8Installer {
     fn resolve_steam_game(
         &self,
         steam_dir: steamlocate::SteamDir,
+        _preferred_app_id: Option<u32>,
     ) -> Result<gamelib_helper::steam_game::SteamGame> {
         gamelib_helper::steam_game::get_game(FF8_APPID, steam_dir)
             .context("Couldn't find Steam installation of FF8")
