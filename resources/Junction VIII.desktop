@@ -1,0 +1,10 @@
+#!/usr/bin/env xdg-open
+[Desktop Entry]
+Name=Junction VIII
+Icon=Junction-VIII
+Exec="INSTALL_PATH/Launch Junction VIII"
+Path=INSTALL_PATH
+Categories=Game;
+Terminal=false
+Type=Application
+StartupNotify=false

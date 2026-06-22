@@ -3,14 +3,17 @@ use std::io::Write;
 use std::path::{Path, PathBuf};
 
 pub const LOGO_PNG: &[u8] = include_bytes!("../resources/logo.png");
+pub const JUNCTION_LOGO_PNG: &[u8] = include_bytes!("../resources/Junction-VIII.png");
 pub const TIMEOUT_EXE: &[u8] = include_bytes!("../resources/timeout.exe");
 
 pub const CONTROLLER_PROFILE: &str =
     include_str!("../resources/controller_neptune_gamepad+mouse+click.vdf");
 pub const MOD_XML: &str = include_str!("../resources/mod.xml");
-pub const SETTINGS_XML: &str = include_str!("../resources/settings.xml");
+pub const SEVENTH_HEAVEN_SETTINGS_XML: &str = include_str!("../resources/7th_heaven_settings.xml");
+pub const JUNCTION_VIII_SETTINGS_XML: &str = include_str!("../resources/junction_viii_settings.xml");
 pub const DXVK_CONF: &str = include_str!("../resources/dxvk.conf");
-pub const SHORTCUT_FILE: &str = include_str!("../resources/7th Heaven.desktop");
+pub const SEVENTH_HEAVEN_SHORTCUT_FILE: &str = include_str!("../resources/7th Heaven.desktop");
+pub const JUNCTION_VIII_SHORTCUT_FILE: &str = include_str!("../resources/Junction VIII.desktop");
 
 #[derive(Debug)]
 pub struct FileAsStr {

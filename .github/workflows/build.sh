@@ -29,9 +29,9 @@ cargo build --bin launcher --release
 cargo build --release
 
 # Start the packaging
-mkdir -p .dist/pkg
-cp -R target/release/launcher .dist/pkg/
-cp -R target/release/${_RELEASE_NAME} .dist/pkg/
-7z a "./.dist/${_RELEASE_NAME}-${_RELEASE_VERSION}.zip" "./.dist/pkg/*"
+mkdir -p dist/pkg
+cp -R target/release/launcher dist/pkg/
+cp -R target/release/${_RELEASE_NAME} dist/pkg/
+7z a "./dist/${_RELEASE_NAME}-${_RELEASE_VERSION}.zip" "./dist/pkg/*"
 
-rm -rf .dist/pkg
+rm -rf dist/pkg

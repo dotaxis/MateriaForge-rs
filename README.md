@@ -10,7 +10,7 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 
 - **Automatic 7th Heaven installation**: downloads, configures, and launches 7th Heaven with no manual setup
 - **Multi-platform game detection**: supports multiple storefronts out of the box
-- **Junction VIII support**: *(planned)* FF8 mod loader support in active development
+- **Junction VIII support**: automated installation and launch support for FF8 on Steam
 - **Written in Rust**: fast, reliable, and expandable
 
 ---
@@ -21,7 +21,7 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 |------------|------|-------|--------------|--------------|
 | **7th Heaven** | Final Fantasy VII (2026) | ✅ | ✅ | 🔜 |
 | |Final Fantasy VII (2013) | ✅ | ➖ | ➖ |
-| **Junction VIII** | Final Fantasy VIII | 🔜 | ➖ | ➖ |
+| **Junction VIII** | Final Fantasy VIII (2013) | ✅ | ➖ | ➖ |
 ---
 
 ## Installation
