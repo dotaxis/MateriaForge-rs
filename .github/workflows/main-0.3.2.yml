@@ -79,14 +79,14 @@ jobs:
       uses: actions/upload-artifact@v7
       with:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
-        path: ".dist/*.zip"
+        path: "dist/*.zip"
     - name: VirusTotal Scan
       id: vt-scan
       if: env._IS_GITHUB_RELEASE == 'true' && success()
       uses: crazy-max/ghaction-virustotal@v5
       with:
         vt_api_key: ${{ secrets._VT_API_KEY }}
-        files: ".dist/*.zip"
+        files: "dist/*.zip"
     - name: Parse VirusTotal Results
       id: vt-res
       if: env._IS_GITHUB_RELEASE == 'true' && success()
@@ -97,7 +97,7 @@ jobs:
           let ret = `${{ steps.vt-scan.outputs.analysis }}`;
 
           ret = '- ' + ret
-          .replaceAll('.dist/','')
+          .replaceAll('dist/','')
           .replaceAll('=h', ': h')
           .replaceAll(',', "\n- ");
 
@@ -114,7 +114,7 @@ jobs:
       uses: ncipollo/release-action@v1
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'true' && success()
       with:
-        artifacts: ".dist/*.zip"
+        artifacts: "dist/*.zip"
         allowUpdates: true
         generateReleaseNotes: true
         prerelease: true
@@ -130,7 +130,7 @@ jobs:
       uses: ncipollo/release-action@v1
       if: env._IS_GITHUB_RELEASE == 'true' && env._IS_BUILD_CANARY == 'false' && success()
       with:
-        artifacts: ".dist/*.zip"
+        artifacts: "dist/*.zip"
         generateReleaseNotes: true
         makeLatest: true
         removeArtifacts: true
