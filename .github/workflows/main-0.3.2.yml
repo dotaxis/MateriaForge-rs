@@ -80,6 +80,7 @@ jobs:
       with:
         name: "${{ env._RELEASE_NAME }}-${{ env._RELEASE_VERSION }}"
         path: "dist/*.zip"
+        archive: false
     - name: VirusTotal Scan
       id: vt-scan
       if: env._IS_GITHUB_RELEASE == 'true' && success()
