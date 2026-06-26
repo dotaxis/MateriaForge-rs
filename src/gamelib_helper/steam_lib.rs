@@ -19,7 +19,7 @@ pub fn get_library() -> Result<steamlocate::SteamDir> {
 
     let libraries: Vec<PathBuf> = possible_libraries
         .into_iter()
-        .filter(|path| path.exists())
+        .filter(|path| path.join("steamapps/libraryfolders.vdf").exists())
         .collect();
 
     if libraries.len() == 1 {
