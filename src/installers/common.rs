@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use dialoguer::theme::ColorfulTheme;
+use dialoguer::{Input, theme::ColorfulTheme};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
 use std::{
@@ -86,8 +86,20 @@ pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
     );
 
     loop {
-        let install_path = FileDialog::new().set_title("Select Destination").pick_folder();
-
+        let mut install_path = FileDialog::new().set_title("Select Destination").pick_folder();
+        if install_path.is_none() {
+            log::warn!("XDG path selection failed, falling back to text input.");
+            println!(
+                "{} Path selection failed! Please manually enter a destination for {}.",
+                console::style("!").yellow(),
+                target.mod_loader_name()
+            );
+            let path: String = Input::new()
+                .with_prompt("Path")
+                .interact_text()?;
+            install_path = Some(PathBuf::from(path));
+            term.clear_last_lines(2)?;
+        }
         if let Some(path) = install_path {
             let path = path.join(target.install_dir_name());
             let choices = &["Yes", "No"];
