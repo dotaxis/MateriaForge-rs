@@ -7,8 +7,7 @@ use crate::{
 };
 
 use super::{
-    common,
-    detected_app_id,
+    common, detected_app_id,
     game_installer::{Detection, GameInstaller},
     target::InstallTarget,
 };
@@ -129,7 +128,10 @@ impl GameInstaller for FF8Installer {
 
         let library_location = format!(
             "Z:{}",
-            install_path.join("mods").to_string_lossy().replace('/', "\\")
+            install_path
+                .join("mods")
+                .to_string_lossy()
+                .replace('/', "\\")
         );
 
         settings_xml.contents = settings_xml

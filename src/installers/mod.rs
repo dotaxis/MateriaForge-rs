@@ -22,9 +22,18 @@ pub(super) fn detected_app_id(game: &lib_game_detector::data::Game) -> Option<u3
         .find_map(|arg| {
             arg.strip_prefix("steam://rungameid/")
                 .or_else(|| arg.split("steam://rungameid/").nth(1))
-                .or_else(|| arg.strip_prefix("heroic://launch/gog/")
-                    .or_else(|| arg.split("heroic://launch/gog/").nth(1)))
-                .and_then(|value| value.chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse::<u32>().ok())
+                .or_else(|| {
+                    arg.strip_prefix("heroic://launch/gog/")
+                        .or_else(|| arg.split("heroic://launch/gog/").nth(1))
+                })
+                .and_then(|value| {
+                    value
+                        .chars()
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect::<String>()
+                        .parse::<u32>()
+                        .ok()
+                })
         })
 }
 
@@ -104,7 +113,8 @@ fn run_install(
         let steam_dir = gamelib_helper::steam_lib::get_library()?;
         config.insert("steam_dir", steam_dir.path().display().to_string());
 
-        let mut steam_game = installer.resolve_steam_game(steam_dir.clone(), detected_app_id(found_game))?;
+        let mut steam_game =
+            installer.resolve_steam_game(steam_dir.clone(), detected_app_id(found_game))?;
 
         steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
         game = Box::new(steam_game);
@@ -134,7 +144,9 @@ fn run_install(
     let use_canary = std::env::args().any(|a| a == "-c" || a == "--canary");
     let update_channel = if use_canary { "Canary" } else { "Stable" };
 
-    let cache_dir = home::home_dir().context("Couldn't find $HOME?")?.join(".cache");
+    let cache_dir = home::home_dir()
+        .context("Couldn't find $HOME?")?
+        .join(".cache");
     let exe_path = common::download_asset(target.mod_loader_repo(), cache_dir, use_canary)
         .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 
@@ -153,8 +165,9 @@ fn run_install(
         patch_install(installer, &install_path, game.as_ref(), update_channel)
     })?;
 
-    let steam_shortcut = common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
-        .context("Failed to create shortcuts")?;
+    let steam_shortcut =
+        common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
+            .context("Failed to create shortcuts")?;
 
     common::add_controller_config(game.as_ref(), &steam_dir, steam_shortcut, is_deck)
         .context("Failed to set controller config")?;
@@ -163,7 +176,10 @@ fn run_install(
         "{} {} successfully installed to '{}'",
         console::style("✔").green(),
         target.mod_loader_name(),
-        console::style(install_path.display()).bold().underlined().white()
+        console::style(install_path.display())
+            .bold()
+            .underlined()
+            .white()
     );
 
     Ok(())

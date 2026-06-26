@@ -8,8 +8,7 @@ use crate::{
 };
 
 use super::{
-    common,
-    detected_app_id,
+    common, detected_app_id,
     game_installer::{Detection, GameInstaller},
     target::InstallTarget,
 };
@@ -116,27 +115,27 @@ impl GameInstaller for FF7Installer {
     ) -> Result<Option<usize>> {
         let selected = match (detection.steam_index, detection.alt_index) {
             (Some(steam), Some(gog)) => {
-            let choices = &["Steam", "Heroic Games"];
-            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
-                .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
-                .default(0)
-                .items(choices)
-                .interact()?;
+                let choices = &["Steam", "Heroic Games"];
+                let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Multiple versions of FF7 detected. Which one do you want to use?")
+                    .default(0)
+                    .items(choices)
+                    .interact()?;
 
-            match selection {
-                0 => steam,
-                1 => gog,
-                _ => unreachable!(),
+                match selection {
+                    0 => steam,
+                    1 => gog,
+                    _ => unreachable!(),
+                }
             }
-        }
             (None, Some(gog)) => {
-            log::info!("Heroic Games Launcher install detected!");
-            gog
-        }
+                log::info!("Heroic Games Launcher install detected!");
+                gog
+            }
             (Some(steam), None) => {
-            log::info!("Steam install detected!");
-            steam
-        }
+                log::info!("Steam install detected!");
+                steam
+            }
             (None, None) => return Ok(None),
         };
 
@@ -149,8 +148,7 @@ impl GameInstaller for FF7Installer {
         preferred_app_id: Option<u32>,
     ) -> Result<gamelib_helper::steam_game::SteamGame> {
         let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
-        let remaster =
-            gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
+        let remaster = gamelib_helper::steam_game::get_game(FF7_2026_APPID, steam_dir.clone()).ok();
 
         if original.is_none() && remaster.is_none() {
             bail!("Couldn't find any supported Steam version of FF7");
@@ -228,7 +226,10 @@ impl GameInstaller for FF7Installer {
         let ff7_exe_path = match game.app_id() {
             FF7_GOG_APPID => format!(
                 "Z:{}",
-                game.path().join(ff7_exe).to_string_lossy().replace('/', "\\")
+                game.path()
+                    .join(ff7_exe)
+                    .to_string_lossy()
+                    .replace('/', "\\")
             ),
             _ => {
                 let full = game.path().join(ff7_exe).to_string_lossy().to_string();
@@ -241,7 +242,10 @@ impl GameInstaller for FF7Installer {
 
         let library_location = format!(
             "Z:{}",
-            install_path.join("mods").to_string_lossy().replace('/', "\\")
+            install_path
+                .join("mods")
+                .to_string_lossy()
+                .replace('/', "\\")
         );
 
         settings_xml.contents = settings_xml

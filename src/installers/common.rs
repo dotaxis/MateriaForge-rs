@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use dialoguer::{Input, theme::ColorfulTheme};
+use dialoguer::{theme::ColorfulTheme, Input};
 use indicatif::{ProgressBar, ProgressState, ProgressStyle};
 use rfd::FileDialog;
 use std::{
@@ -86,7 +86,9 @@ pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
     );
 
     loop {
-        let mut install_path = FileDialog::new().set_title("Select Destination").pick_folder();
+        let mut install_path = FileDialog::new()
+            .set_title("Select Destination")
+            .pick_folder();
         if install_path.is_none() {
             log::warn!("XDG path selection failed, falling back to text input.");
             println!(
@@ -94,9 +96,7 @@ pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
                 console::style("!").yellow(),
                 target.mod_loader_name()
             );
-            let path: String = Input::new()
-                .with_prompt("Path")
-                .interact_text()?;
+            let path: String = Input::new().with_prompt("Path").interact_text()?;
             install_path = Some(PathBuf::from(path));
             term.clear_last_lines(2)?;
         }
@@ -116,8 +116,9 @@ pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
             match confirm {
                 0 => {
                     term.clear_last_lines(2)?;
-                    fs::create_dir_all(&path)
-                        .with_context(|| format!("Couldn't create directory '{}'", path.display()))?;
+                    fs::create_dir_all(&path).with_context(|| {
+                        format!("Couldn't create directory '{}'", path.display())
+                    })?;
                     println!(
                         "{} Installing to '{}'",
                         console::style("!").yellow(),
@@ -216,7 +217,10 @@ pub fn install_loader(
 
     let args: Vec<String> = vec![
         "/VERYSILENT".to_string(),
-        format!("/DIR=Z:{}", install_path.to_string_lossy().replace('/', "\\")),
+        format!(
+            "/DIR=Z:{}",
+            install_path.to_string_lossy().replace('/', "\\")
+        ),
         format!("/LOG={}", target.install_log_name()),
     ];
 
