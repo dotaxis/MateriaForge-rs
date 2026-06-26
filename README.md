@@ -8,9 +8,9 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 
 ## Features
 
-- **Automatic 7th Heaven installation**: downloads, configures, and launches 7th Heaven with no manual setup
+- **7th Heaven installation**: downloads, configures, and launches 7th Heaven with no manual setup
+- **Junction VIII installation**: downloads, configures, and launches Junction VIII with no manual setup
 - **Multi-platform game detection**: supports multiple storefronts out of the box
-- **Junction VIII support**: automated installation and launch support for FF8 on Steam
 - **Written in Rust**: fast, reliable, and expandable
 
 ---
@@ -28,15 +28,15 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 
 Pre-built binaries are available on the [Releases](https://github.com/dotaxis/MateriaForge-rs/releases) page.
 
-1. Ensure you have installed FF7 and clicked "Play" in the launcher at least once. You can close the game once you get to the main menu.
+1. Ensure you have installed FF7 or FF8 and clicked "Play" in the game's launcher at least once. You can close the game once you get to the main menu.
 
-2. Download the latest release, unzip, and run it:
+2. Download the latest release, unzip, and run it in a terminal:
 
 ```bash
 ./MateriaForge
 ```
 
-3. On first launch of 7th Heaven, click **Save**. Do **NOT** click Reset Defaults.
+3. On first launch of 7th Heaven or Junction VIII, click **Save**. Do **NOT** click Reset Defaults.
 
 ---
 
@@ -114,6 +114,8 @@ The compiled binary will be at `target/release/MateriaForge`.
 - [7th Heaven](https://github.com/tsunamods-codes/7th-Heaven) — the FF7 mod loader MateriaForge installs
 - [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII) — the FF8 mod loader MateriaForge installs (coming soon)
 - [Heroic Games Launcher](https://heroicgameslauncher.com/) — GOG & Epic launcher for Linux
+- [lib_game_detector](https://github.com/Rolv-Apneseth/lib_game_detector) — Rust crate used for detecting installed GOG games
+- [steamlocate](https://github.com/WilliamVenner/steamlocate-rs) — Rust crate used for parsing Steam libraries
 
 ---
 
