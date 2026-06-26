@@ -1,8 +1,3 @@
-pub const FF7_APPID: u32 = 39140;
-pub const FF7_2026_APPID: u32 = 3837340;
-pub const FF7_GOG_APPID: u32 = 1698970154;
-pub const FF8_APPID: u32 = 39150;
-
 pub trait InstallTarget {
     fn target_key(&self) -> &'static str;
     fn mod_loader_name(&self) -> &'static str;

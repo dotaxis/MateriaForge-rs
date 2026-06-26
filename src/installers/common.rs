@@ -14,7 +14,7 @@ use crate::{
     resource_handler,
 };
 
-use super::target::{InstallTarget, FF7_GOG_APPID};
+use super::{ff7::FF7_GOG_APPID, target::InstallTarget};
 
 pub fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();

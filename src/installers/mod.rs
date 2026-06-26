@@ -15,6 +15,19 @@ mod target;
 
 use game_installer::{Detection, GameInstaller};
 
+pub(super) fn detected_app_id(game: &lib_game_detector::data::Game) -> Option<u32> {
+    game.launch_command
+        .get_args()
+        .filter_map(|arg| arg.to_str())
+        .find_map(|arg| {
+            arg.strip_prefix("steam://rungameid/")
+                .or_else(|| arg.split("steam://rungameid/").nth(1))
+                .or_else(|| arg.strip_prefix("heroic://launch/gog/")
+                    .or_else(|| arg.split("heroic://launch/gog/").nth(1)))
+                .and_then(|value| value.chars().take_while(|c| c.is_ascii_digit()).collect::<String>().parse::<u32>().ok())
+        })
+}
+
 pub fn run(is_deck: bool) -> Result<()> {
     let detector = get_detector();
     let installs = detector.get_all_detected_games();
@@ -93,7 +106,7 @@ fn run_install(
 
         let find_message = format!("Finding {}...", installer.steam_search_label());
         let mut steam_game = common::with_spinner(&find_message, "Done!", || {
-            installer.resolve_steam_game(steam_dir.clone())
+            installer.resolve_steam_game(steam_dir.clone(), detected_app_id(found_game))
         })?;
 
         steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);

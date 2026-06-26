@@ -9,9 +9,14 @@ use crate::{
 
 use super::{
     common,
+    detected_app_id,
     game_installer::{Detection, GameInstaller},
-    target::{InstallTarget, FF7_2026_APPID, FF7_APPID, FF7_GOG_APPID},
+    target::InstallTarget,
 };
+
+pub(super) const FF7_APPID: u32 = 39140;
+pub(super) const FF7_2026_APPID: u32 = 3837340;
+pub(super) const FF7_GOG_APPID: u32 = 1698970154;
 
 pub struct FF7Target;
 pub static TARGET: FF7Target = FF7Target;
@@ -71,6 +76,14 @@ pub struct FF7Installer;
 
 pub const INSTALLER: FF7Installer = FF7Installer;
 
+fn is_ff7_steam_app_id(app_id: u32) -> bool {
+    matches!(app_id, FF7_APPID | FF7_2026_APPID)
+}
+
+fn is_ff7_gog_app_id(app_id: u32) -> bool {
+    app_id == FF7_GOG_APPID
+}
+
 impl GameInstaller for FF7Installer {
     fn target(&self) -> &'static dyn InstallTarget {
         &TARGET
@@ -82,12 +95,12 @@ impl GameInstaller for FF7Installer {
 
     fn detect(&self, installs: &[DetectedGame]) -> Detection {
         let steam_index = installs.iter().position(|game| {
-            game.title.to_lowercase().contains("final fantasy vii")
-                && game.source == SupportedLaunchers::Steam
+            game.source == SupportedLaunchers::Steam
+                && detected_app_id(game).is_some_and(is_ff7_steam_app_id)
         });
         let alt_index = installs.iter().position(|game| {
-            game.title.to_lowercase().contains("final fantasy vii")
-                && game.source == SupportedLaunchers::HeroicGamesGOG
+            game.source == SupportedLaunchers::HeroicGamesGOG
+                && detected_app_id(game).is_some_and(is_ff7_gog_app_id)
         });
 
         Detection {
@@ -137,6 +150,7 @@ impl GameInstaller for FF7Installer {
     fn resolve_steam_game(
         &self,
         steam_dir: steamlocate::SteamDir,
+        preferred_app_id: Option<u32>,
     ) -> Result<gamelib_helper::steam_game::SteamGame> {
         let original = gamelib_helper::steam_game::get_game(FF7_APPID, steam_dir.clone()).ok();
         let remaster =
@@ -149,11 +163,15 @@ impl GameInstaller for FF7Installer {
         match (original, remaster) {
             (Some(og), Some(rm)) => {
                 let choices = &[&og.name, &format!("{} (2026)", rm.name)];
+                let default_selection = match preferred_app_id {
+                    Some(FF7_2026_APPID) => 1,
+                    _ => 0,
+                };
                 let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
                     .with_prompt(
                         "Multiple Steam installations of FF7 were detected. Which one do you want to patch?",
                     )
-                    .default(0)
+                    .default(default_selection)
                     .items(choices)
                     .interact()
                     .context("Selection failed")?;
