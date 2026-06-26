@@ -27,7 +27,6 @@ pub trait GameInstaller {
         detection: Detection,
     ) -> Result<Option<usize>>;
 
-    fn steam_search_label(&self) -> &'static str;
     fn resolve_steam_game(
         &self,
         steam_dir: steamlocate::SteamDir,

@@ -143,10 +143,6 @@ impl GameInstaller for FF7Installer {
         Ok(Some(selected))
     }
 
-    fn steam_search_label(&self) -> &'static str {
-        "FF7"
-    }
-
     fn resolve_steam_game(
         &self,
         steam_dir: steamlocate::SteamDir,

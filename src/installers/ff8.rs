@@ -97,10 +97,6 @@ impl GameInstaller for FF8Installer {
         Ok(detection.steam_index)
     }
 
-    fn steam_search_label(&self) -> &'static str {
-        "FF8"
-    }
-
     fn resolve_steam_game(
         &self,
         steam_dir: steamlocate::SteamDir,
