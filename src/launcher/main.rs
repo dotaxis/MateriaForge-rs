@@ -40,7 +40,10 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
 }
 
 fn main() -> Result<()> {
-    logging::init("launcher.log")?;
+     if let Err(e) = logging::init("launcher.log") {
+        eprintln!("Failed to create log file! Error: {e}");
+        std::process::exit(1);
+    }
     log::info!("Starting MateriaForge version {}", VERSION);
 
     let install_type = config_handler::read_value("type")

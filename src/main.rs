@@ -16,7 +16,7 @@ static IS_DECK: LazyLock<bool> = LazyLock::new(|| {
 
 fn main() {
     if let Err(e) = logging::init("MateriaForge.log") {
-        eprintln!("Fatal: {e}");
+        eprintln!("Failed to create log file! Error: {e}");
         std::process::exit(1);
     }
     log::info!("Starting MateriaForge version {}", VERSION);
