@@ -1,8 +1,8 @@
 # MateriaForge
 
-> All-in-one installer for 7th Heaven and Junction VIII on Linux. 
+> All-in-one installer for Final Fantasy game series on Linux.
 
-MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) and [8thDeck](https://github.com/dotaxis/8thDeck), automating the installation and setup of [7th Heaven](https://github.com/tsunamods-codes/7th-Heaven) and [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII) on Linux — now wrapped up nicely in a single application!
+MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) and [8thDeck](https://github.com/dotaxis/8thDeck), automating the installation and setup of various Final Fantasy mod managers on Linux — now wrapped up nicely in a single application!
 
 ---
 
@@ -17,18 +17,18 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 
 ## Supported Mod Loaders
 
-| Mod Loader | Game | Steam | GOG (Heroic) | GOG (Lutris) |
-|------------|------|-------|--------------|--------------|
-| **7th Heaven** | Final Fantasy VII (2026) | ✅ | ✅ | 🔜 |
-| |Final Fantasy VII (2013) | ✅ | ➖ | ➖ |
-| **Junction VIII** | Final Fantasy VIII (2013) | ✅ | ➖ | ➖ |
+| Mod Loader | Game | Steam | GOG (Heroic) | GOG (Lutris) | [Discord Support](https://discord.gg/tsunamods-community-277610501721030656) channel |
+|------------|------|-------|--------------|--------------|-------------------------|
+| **7th Heaven** | Final Fantasy VII (2026) | ✅ | ✅ | 🔜 | #ff7-linux |
+| |Final Fantasy VII (2013) | ✅ | N/A | N/A | #ff7-linux |
+| **Junction VIII** | Final Fantasy VIII (2013) | ✅ | N/A | N/A | #ff8-linux |
 ---
 
 ## Installation
 
 Pre-built binaries are available on the [Releases](https://github.com/dotaxis/MateriaForge-rs/releases) page.
 
-1. Ensure you have installed FF7 or FF8 and clicked "Play" in the game's launcher at least once. You can close the game once you get to the main menu.
+1. Ensure you have installed any of the supported games and clicked "Play" in the game's launcher at least once. You can close the game once you get to the main menu.
 
 2. Download the latest release, unzip, and run it in a terminal:
 
@@ -36,7 +36,7 @@ Pre-built binaries are available on the [Releases](https://github.com/dotaxis/Ma
 ./MateriaForge
 ```
 
-3. On first launch of 7th Heaven or Junction VIII, click **Save**. Do **NOT** click Reset Defaults.
+> **IMPORTANT:** On first launch of 7th Heaven or Junction VIII, click **Save**. Do **NOT** click Reset Defaults.
 
 ---
 
@@ -44,14 +44,14 @@ Pre-built binaries are available on the [Releases](https://github.com/dotaxis/Ma
 
 | Flag | Description |
 |------|-------------|
-| `-c`, `--canary` | Install pre-release (canary) versions of 7th Heaven and FFNx |
+| `-c`, `--canary` | Install pre-release (canary) versions of the chosen mod loader |
 | `-d`, `--deck` | Force detection of Steam Deck for controller config option |
 
 ---
 
 ## Configuration (TOML)
 
-MateriaForge generates a `MateriaForge.toml` file in the 7th Heaven installation folder. This file is created automatically during setup, but you can edit it manually to customize behavior.
+MateriaForge generates a `MateriaForge.toml` file in the chosen mod loader installation folder. This file is created automatically during setup, but you can edit it manually to customize behavior.
 
 ### Example
 
@@ -110,9 +110,9 @@ The compiled binary will be at `target/release/MateriaForge`.
 ## Related Projects
 
 - [7thDeck](https://github.com/dotaxis/7thDeck) — the 7th Heaven Linux installer this project succeeds
-- [8thDeck](https://github.com/dotaxis/8thDeck) — the Junction VIII Linux installer this project succeeds (coming soon)
+- [8thDeck](https://github.com/dotaxis/8thDeck) — the Junction VIII Linux installer this project succeeds
 - [7th Heaven](https://github.com/tsunamods-codes/7th-Heaven) — the FF7 mod loader MateriaForge installs
-- [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII) — the FF8 mod loader MateriaForge installs (coming soon)
+- [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII) — the FF8 mod loader MateriaForge installs
 - [Heroic Games Launcher](https://heroicgameslauncher.com/) — GOG & Epic launcher for Linux
 - [lib_game_detector](https://github.com/Rolv-Apneseth/lib_game_detector) — Rust crate used for detecting installed GOG games
 - [steamlocate](https://github.com/WilliamVenner/steamlocate-rs) — Rust crate used for parsing Steam libraries
@@ -122,7 +122,7 @@ The compiled binary will be at `target/release/MateriaForge`.
 ## Contributing & Support
 
 - Issues and pull requests are welcome. If you run into problems with a specific game version or platform setup, please open an issue with your distro and `MateriaForge.log`.
-- You can find me at the [Tsunamods Discord](https://discord.gg/tsunamods-community-277610501721030656) in the #ff7-linux and #ff8-linux channels for quick questions.
+- You can find me at the [Tsunamods Discord](https://discord.gg/tsunamods-community-277610501721030656) for quick questions.
 
 ---
 
