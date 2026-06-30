@@ -10,6 +10,7 @@ use crate::{
 mod common;
 mod ff7;
 mod ff8;
+mod ff9;
 mod game_installer;
 mod target;
 
@@ -114,7 +115,9 @@ fn run_install(
         let mut steam_game =
             installer.resolve_steam_game(steam_install_dir.clone(), detected_app_id(found_game))?;
 
-        steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
+        if installer.requires_runner_selection() {
+            steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
+        }
         game = Box::new(steam_game);
     } else {
         let (resolved_game, install_type) = installer.resolve_nonsteam_game(found_game)?;
@@ -150,31 +153,42 @@ fn run_install(
         cache_dir,
         use_canary,
         target.github_asset_pattern(),
+        installer.installer_asset_name(),
     )
-    .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
+        .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 
-    let mut env_vars = std::collections::HashMap::new();
-    env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
-    config_handler::write(config, env_vars).context("Failed to write config")?;
+    if installer.should_write_launcher_config() {
+        let mut env_vars = std::collections::HashMap::new();
+        env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
+        config_handler::write(config, env_vars).context("Failed to write config")?;
+    }
 
-    let install_path = common::get_install_path(target)?;
+    let install_path = if installer.requires_install_path() {
+        common::get_install_path(target)?
+    } else {
+        game.path().to_path_buf()
+    };
 
     common::with_spinner(
         &format!("Installing {}...", target.mod_loader_name()),
         "Done!",
-        || -> Result<()> {
-            common::install_loader(target, game.as_ref(), exe_path, &install_path)?;
-            common::write_common_patch_files(&install_path, game.as_ref())?;
-            installer.patch_install(&install_path, game.as_ref(), update_channel)
-        },
+        || installer.run_loader_install(game.as_ref(), exe_path, &install_path),
     )?;
 
-    let steam_shortcut =
-        common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
-            .context("Failed to create shortcuts")?;
+    if installer.should_run_patch_install() {
+        common::with_spinner("Patching installation...", "Done!", || {
+            patch_install(installer, &install_path, game.as_ref(), update_channel)
+        })?;
+    }
 
-    common::add_controller_config(game.as_ref(), &steam_dir, steam_shortcut, is_deck)
-        .context("Failed to set controller config")?;
+    if installer.should_manage_shortcuts() {
+        let steam_shortcut =
+            common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
+                .context("Failed to create shortcuts")?;
+
+        common::add_controller_config(game.as_ref(), &steam_dir, steam_shortcut, is_deck)
+            .context("Failed to set controller config")?;
+    }
 
     println!(
         "{} {} successfully installed to '{}'",
@@ -189,8 +203,19 @@ fn run_install(
     Ok(())
 }
 
+fn patch_install(
+    installer: &dyn GameInstaller,
+    install_path: &std::path::Path,
+    game: &dyn PrefixedGame,
+    update_channel: &str,
+) -> Result<()> {
+    if installer.needs_common_patch_files() {
+        common::write_common_patch_files(install_path, game)?;
+    }
+    installer.patch_install(install_path, game, update_channel)
+}
 fn installers_registry() -> Vec<&'static dyn GameInstaller> {
-    vec![&ff7::INSTALLER, &ff8::INSTALLER]
+    vec![&ff7::INSTALLER, &ff8::INSTALLER, &ff9::INSTALLER]
 }
 
 #[cfg(test)]

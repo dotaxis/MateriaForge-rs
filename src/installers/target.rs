@@ -3,12 +3,28 @@ pub trait InstallTarget {
     fn mod_loader_name(&self) -> &'static str;
     fn mod_loader_repo(&self) -> &'static str;
     fn install_log_name(&self) -> &'static str;
-    fn launch_binary_name(&self) -> &'static str;
-    fn desktop_template(&self) -> &'static str;
-    fn desktop_file_name(&self, app_id: u32) -> String;
-    fn icon_name(&self) -> &'static str;
-    fn icon_file_name(&self) -> &'static str;
-    fn icon_bytes(&self) -> &'static [u8];
+    fn launch_binary_name(&self) -> &'static str {
+        ""
+    }
+    fn desktop_template(&self) -> &'static str {
+        ""
+    }
+
+    fn desktop_file_name(&self, _app_id: u32) -> String {
+        String::new()
+    }
+
+    fn icon_name(&self) -> &'static str {
+        ""
+    }
+
+    fn icon_file_name(&self) -> &'static str {
+        ""
+    }
+
+    fn icon_bytes(&self) -> &'static [u8] {
+        &[]
+    }
 
     fn github_asset_pattern(&self) -> &'static str {
         ".exe"

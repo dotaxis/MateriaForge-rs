@@ -21,6 +21,7 @@ pub fn download_asset(
     destination: PathBuf,
     prerelease: bool,
     file_pattern: &str,
+    asset_name: Option<&str>,
 ) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();
 
@@ -33,8 +34,13 @@ pub fn download_asset(
             .json()?;
         releases
             .into_iter()
-            .next()
-            .context("No releases found in GitHub repo")?
+            .find(|release| {
+                release
+                    .get("prerelease")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            })
+            .context("No pre-release found in GitHub repo")?
     } else {
         let release_url = format!("https://api.github.com/repos/{repo}/releases/latest");
         client
@@ -48,10 +54,17 @@ pub fn download_asset(
         .as_array()
         .context("No assets found in GitHub link")?;
 
-    let asset = assets
-        .iter()
-        .find(|a| a["name"].as_str().unwrap_or("").contains(file_pattern))
-        .context(format!("No asset found containing '{file_pattern}'"))?;
+    let asset = if let Some(name) = asset_name {
+        assets
+            .iter()
+            .find(|a| a["name"].as_str().is_some_and(|asset| asset == name))
+            .with_context(|| format!("Asset '{name}' not found in release"))?
+    } else {
+        assets
+            .iter()
+            .find(|a| a["name"].as_str().unwrap_or("").contains(file_pattern))
+            .with_context(|| format!("No asset found containing '{file_pattern}'"))?
+    };
 
     let download_url = asset["browser_download_url"]
         .as_str()

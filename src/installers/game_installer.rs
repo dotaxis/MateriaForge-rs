@@ -1,9 +1,10 @@
 use anyhow::{bail, Result};
 use lib_game_detector::data::Game as DetectedGame;
+use std::path::{Path, PathBuf};
 
 use crate::gamelib_helper::{steam_game::SteamGame, PrefixedGame};
 
-use super::target::InstallTarget;
+use super::{common, target::InstallTarget};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub struct Detection {
@@ -49,4 +50,41 @@ pub trait GameInstaller {
         game: &dyn PrefixedGame,
         update_channel: &str,
     ) -> Result<()>;
+
+    fn installer_asset_name(&self) -> Option<&'static str> {
+        None
+    }
+
+    fn requires_runner_selection(&self) -> bool {
+        true
+    }
+
+    fn requires_install_path(&self) -> bool {
+        true
+    }
+
+    fn should_write_launcher_config(&self) -> bool {
+        true
+    }
+
+    fn should_run_patch_install(&self) -> bool {
+        true
+    }
+
+    fn should_manage_shortcuts(&self) -> bool {
+        true
+    }
+
+    fn needs_common_patch_files(&self) -> bool {
+        true
+    }
+
+    fn run_loader_install(
+        &self,
+        game: &dyn PrefixedGame,
+        installer_path: PathBuf,
+        install_path: &Path,
+    ) -> Result<()> {
+        common::install_loader(self.target(), game, installer_path, install_path)
+    }
 }
