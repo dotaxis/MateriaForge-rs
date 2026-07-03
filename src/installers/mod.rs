@@ -160,15 +160,16 @@ fn run_install(
     config_handler::write(config, env_vars).context("Failed to write config")?;
 
     let install_path = common::get_install_path(target)?;
+
     common::with_spinner(
         &format!("Installing {}...", target.mod_loader_name()),
         "Done!",
-        || common::install_loader(target, game.as_ref(), exe_path, &install_path),
+        || -> Result<()> {
+            common::install_loader(target, game.as_ref(), exe_path, &install_path)?;
+            common::write_common_patch_files(&install_path, game.as_ref())?;
+            installer.patch_install(&install_path, game.as_ref(), update_channel)
+        },
     )?;
-
-    common::with_spinner("Patching installation...", "Done!", || {
-        patch_install(installer, &install_path, game.as_ref(), update_channel)
-    })?;
 
     let steam_shortcut =
         common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
@@ -188,16 +189,6 @@ fn run_install(
     );
 
     Ok(())
-}
-
-fn patch_install(
-    installer: &dyn GameInstaller,
-    install_path: &std::path::Path,
-    game: &dyn PrefixedGame,
-    update_channel: &str,
-) -> Result<()> {
-    common::write_common_patch_files(install_path, game)?;
-    installer.patch_install(install_path, game, update_channel)
 }
 
 fn installers_registry() -> Vec<&'static dyn GameInstaller> {
