@@ -10,6 +10,10 @@ pub trait InstallTarget {
     fn icon_file_name(&self) -> &'static str;
     fn icon_bytes(&self) -> &'static [u8];
 
+    fn github_asset_pattern(&self) -> &'static str {
+        ".exe"
+    }
+
     fn install_dir_name(&self) -> &'static str {
         self.mod_loader_name()
     }

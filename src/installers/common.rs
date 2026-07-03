@@ -16,7 +16,12 @@ use crate::{
 
 use super::{ff7::FF7_GOG_APPID, target::InstallTarget};
 
-pub fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Result<PathBuf> {
+pub fn download_asset(
+    repo: &str,
+    destination: PathBuf,
+    prerelease: bool,
+    file_pattern: &str,
+) -> Result<PathBuf> {
     let client = reqwest::blocking::Client::new();
 
     let response: serde_json::Value = if prerelease {
@@ -43,25 +48,25 @@ pub fn download_asset(repo: &str, destination: PathBuf, prerelease: bool) -> Res
         .as_array()
         .context("No assets found in GitHub link")?;
 
-    let exe_asset = assets
+    let asset = assets
         .iter()
-        .find(|a| a["name"].as_str().unwrap_or("").ends_with(".exe"))
-        .context("No .exe asset found")?;
+        .find(|a| a["name"].as_str().unwrap_or("").contains(file_pattern))
+        .context(format!("No asset found containing '{file_pattern}'"))?;
 
-    let download_url = exe_asset["browser_download_url"]
+    let download_url = asset["browser_download_url"]
         .as_str()
         .context("No download URL was passed")?;
 
-    let size = exe_asset["size"].as_u64().unwrap_or(0);
+    let size = asset["size"].as_u64().unwrap_or(0);
 
     let pb = ProgressBar::new(size);
     pb.set_style(ProgressStyle::with_template("{spinner:.green} {msg} [{elapsed_precise}] [{wide_bar:.cyan/blue}] {bytes}/{total_bytes} ({eta})")?
         .with_key("eta", |state: &ProgressState, w: &mut dyn Write| write!(w, "{:.1}s", state.eta().as_secs_f64()).unwrap())
         .progress_chars("#>-"));
-    pb.set_message(format!("Downloading {}", exe_asset["name"]));
+    pb.set_message(format!("Downloading {}", asset["name"]));
 
     fs::create_dir_all(&destination)?;
-    let file_name = exe_asset["name"]
+    let file_name = asset["name"]
         .as_str()
         .context("Invalid destination file name")?;
     let file_path = destination.join(file_name);
@@ -244,8 +249,13 @@ pub fn install_loader(
 
     let launcher_name = target.launch_binary_with_identifier(game.app_id());
 
-    fs::copy(&launcher_path, install_path.join(launcher_name))
-        .expect(format!("Failed to copy launcher from {} to install_path", launcher_path.display()).as_str());
+    fs::copy(&launcher_path, install_path.join(launcher_name)).expect(
+        format!(
+            "Failed to copy launcher from {} to install_path",
+            launcher_path.display()
+        )
+        .as_str(),
+    );
 
     Ok(())
 }

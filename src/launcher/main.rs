@@ -40,7 +40,7 @@ fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<
 }
 
 fn main() -> Result<()> {
-     if let Err(e) = logging::init("launcher.log") {
+    if let Err(e) = logging::init("launcher.log") {
         eprintln!("Failed to create log file! Error: {e}");
         std::process::exit(1);
     }

@@ -147,8 +147,13 @@ fn run_install(
     let cache_dir = home::home_dir()
         .context("Couldn't find $HOME?")?
         .join(".cache");
-    let exe_path = common::download_asset(target.mod_loader_repo(), cache_dir, use_canary)
-        .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
+    let exe_path = common::download_asset(
+        target.mod_loader_repo(),
+        cache_dir,
+        use_canary,
+        target.github_asset_pattern(),
+    )
+    .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 
     let mut env_vars = std::collections::HashMap::new();
     env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
