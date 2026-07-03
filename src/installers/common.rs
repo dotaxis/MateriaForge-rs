@@ -240,12 +240,7 @@ pub fn install_loader(
     fs::copy(toml_path, install_path.join("MateriaForge.toml"))
         .context("Failed to copy TOML to install_path")?;
 
-    let launcher_path = if cfg!(debug_assertions) {
-        "target/debug/launcher"
-    } else {
-        "launcher"
-    };
-    let launcher_path = PathBuf::from(current_dir.join(launcher_path));
+    let launcher_path = PathBuf::from(current_dir.join("launcher"));
 
     let launcher_name = target.launch_binary_with_identifier(game.app_id());
 
