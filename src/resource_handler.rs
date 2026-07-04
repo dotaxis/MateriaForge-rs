@@ -91,11 +91,6 @@ fn write_file(name: &str, destination: &Path, contents: &[u8]) -> Result<()> {
 
 pub fn as_bytes(name: String, destination: PathBuf, contents: &[u8]) -> FileAsBytes {
     let full_path = destination.join(&name);
-
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).expect("Failed to create destination directory");
-    }
-
     FileAsBytes {
         name,
         destination: full_path,
@@ -105,11 +100,6 @@ pub fn as_bytes(name: String, destination: PathBuf, contents: &[u8]) -> FileAsBy
 
 pub fn as_str(name: String, destination: PathBuf, contents: &str) -> FileAsStr {
     let full_path = destination.join(&name);
-
-    if let Some(parent) = full_path.parent() {
-        std::fs::create_dir_all(parent).expect("Failed to create destination directory");
-    }
-
     FileAsStr {
         name,
         destination: full_path,

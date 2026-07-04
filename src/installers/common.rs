@@ -247,13 +247,12 @@ pub fn install_loader(
 
     let launcher_name = target.launch_binary_with_identifier(game.app_id());
 
-    fs::copy(&launcher_path, install_path.join(launcher_name)).expect(
+    fs::copy(&launcher_path, install_path.join(launcher_name)).with_context(|| {
         format!(
             "Failed to copy launcher from {} to install_path",
             launcher_path.display()
         )
-        .as_str(),
-    );
+    })?;
 
     Ok(())
 }
