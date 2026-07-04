@@ -96,13 +96,16 @@ pub fn get_install_path(target: &dyn InstallTarget) -> Result<PathBuf> {
             .pick_folder();
         if install_path.is_none() {
             log::warn!("XDG path selection failed, falling back to text input.");
-            println!(
-                "{} Path selection failed! Please manually enter a destination for {}.",
-                console::style("!").yellow(),
-                target.mod_loader_name()
-            );
             let path: String = Input::new().with_prompt("Path").interact_text()?;
             install_path = Some(PathBuf::from(path));
+            if !install_path.as_ref().unwrap().is_dir() {
+                term.clear_last_lines(1)?;
+                println!(
+                    "{} The path you entered is not a valid directory. Please try again.",
+                    console::style("x").red()
+                );
+                continue;
+            }
             term.clear_last_lines(2)?;
         }
         if let Some(path) = install_path {
