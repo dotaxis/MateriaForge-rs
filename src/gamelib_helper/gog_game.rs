@@ -84,6 +84,7 @@ pub fn run_in_prefix(
         (None, other) => bail!("Unknown runner type: {other}"),
     };
     command
+        .env("DOTNET_ROOT", "")
         .env("WINEDLLOVERRIDES", "dinput=n,b")
         .envs(config_handler::read_env_vars())
         .stdout(Stdio::piped())

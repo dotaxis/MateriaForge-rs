@@ -204,6 +204,7 @@ pub fn run_in_prefix(
     };
 
     command
+        .env("DOTNET_ROOT", "")
         .env("STEAM_COMPAT_MOUNTS", mounts)
         .env("STEAM_COMPAT_CLIENT_INSTALL_PATH", &game.client_path)
         .env(
