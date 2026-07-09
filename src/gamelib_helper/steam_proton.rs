@@ -60,7 +60,7 @@ fn get_runtime_appid(manifest_path: PathBuf) -> Result<u32> {
         .context("Failed to parse require_tool_appid as u32")
 }
 
-fn get_runtime(runner: &Runner) -> Result<Option<Runtime>> {
+fn get_runtime(runner: &Runner, steam_dir: &steamlocate::SteamDir) -> Result<Option<Runtime>> {
     let manifest_path = runner
         .path
         .parent()
@@ -72,7 +72,6 @@ fn get_runtime(runner: &Runner) -> Result<Option<Runtime>> {
         Err(_) => return Ok(None), // No require_tool_appid key = no runtime required
     };
 
-    let steam_dir = steamlocate::SteamDir::locate().context("Failed to locate Steam directory")?;
     let (app, library) = steam_dir
         .find_app(runtime_appid)?
         .with_context(|| format!("Required Steam Linux Runtime (app ID {runtime_appid}) is not installed. Please install it from your Steam library before launching."))?;
@@ -86,7 +85,7 @@ fn get_runtime(runner: &Runner) -> Result<Option<Runtime>> {
     }))
 }
 
-fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
+fn find_custom_versions(steam_dir: &steamlocate::SteamDir) -> Result<Vec<Runner>> {
     let compat_dirs = [
         steam_dir.path().join("compatibilitytools.d"),
         "/usr/share/steam/compatibilitytools.d".into(),
@@ -109,7 +108,7 @@ fn find_custom_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>>
                     path: runner_path,
                     runtime: None,
                 };
-                runner.runtime = get_runtime(&runner)?;
+                runner.runtime = get_runtime(&runner, steam_dir)?;
 
                 custom_runners.push(runner);
             }
@@ -140,7 +139,7 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         path: app_path,
                         runtime: None,
                     };
-                    runner.runtime = get_runtime(&runner)?;
+                    runner.runtime = get_runtime(&runner, &steam_dir)?;
 
                     proton_versions.push(runner);
                 } else {
@@ -151,9 +150,7 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
     }
 
     proton_versions.extend(
-        find_custom_versions(steam_dir.clone())
-            .context("Failed to find custom Proton versions")?
-            .into_iter(),
+        find_custom_versions(&steam_dir).context("Failed to find custom Proton versions")?,
     );
 
     if proton_versions.is_empty() {
