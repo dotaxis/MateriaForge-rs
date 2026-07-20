@@ -45,10 +45,6 @@ impl PrefixRunner for SteamGame {
 
 pub fn get_game(app_id: u32, steam_dir: steamlocate::SteamDir) -> Result<SteamGame> {
     let steam_dir_pathbuf = PathBuf::from(steam_dir.path());
-    log::info!(
-        "Located Steam installation: {}",
-        steam_dir_pathbuf.display()
-    );
     let (app, library) = steam_dir
         .find_app(app_id)?
         .with_context(|| format!("Couldn't find app with ID {}", app_id))?;

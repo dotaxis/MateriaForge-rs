@@ -105,16 +105,14 @@ fn run_install(
     let steam_dir: Option<steamlocate::SteamDir> = gamelib_helper::steam_lib::get_library().ok();
 
     if found_game.source == lib_game_detector::data::SupportedLaunchers::Steam {
-        if steam_dir.is_none() {
-            bail!("Selected Steam game, but no Steam library could be found?");
-        }
+        let steam_install_dir = steam_dir.clone().ok_or_else(|| {
+            anyhow::anyhow!("Selected Steam game, but no Steam library could be found?")
+        })?;
         config.insert("type", "steam".to_string());
-
-        let steam_dir = gamelib_helper::steam_lib::get_library()?;
-        config.insert("steam_dir", steam_dir.path().display().to_string());
+        config.insert("steam_dir", steam_install_dir.path().display().to_string());
 
         let mut steam_game =
-            installer.resolve_steam_game(steam_dir.clone(), detected_app_id(found_game))?;
+            installer.resolve_steam_game(steam_install_dir.clone(), detected_app_id(found_game))?;
 
         steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
         game = Box::new(steam_game);
