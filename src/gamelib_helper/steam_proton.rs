@@ -149,9 +149,8 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
         }
     }
 
-    proton_versions.extend(
-        find_custom_versions(&steam_dir).context("Failed to find custom Proton versions")?,
-    );
+    proton_versions
+        .extend(find_custom_versions(&steam_dir).context("Failed to find custom Proton versions")?);
 
     if proton_versions.is_empty() {
         bail!("No Proton versions found")

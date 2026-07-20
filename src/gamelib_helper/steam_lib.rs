@@ -9,12 +9,18 @@ use std::{
 use urlencoding::encode;
 
 pub fn get_library() -> Result<steamlocate::SteamDir> {
-    let possible_libraries = steamlocate::locate_all().with_context(|| "Failed to locate Steam libraries")?;
+    let possible_libraries =
+        steamlocate::locate_all().with_context(|| "Failed to locate Steam libraries")?;
 
     log::info!("Possible Steam libraries: {:?}", possible_libraries);
     let libraries: Vec<PathBuf> = possible_libraries
         .into_iter()
-        .filter(|steam_dir| steam_dir.path().join("steamapps/libraryfolders.vdf").exists())
+        .filter(|steam_dir| {
+            steam_dir
+                .path()
+                .join("steamapps/libraryfolders.vdf")
+                .exists()
+        })
         .map(|steam_dir| steam_dir.path().to_path_buf())
         .collect();
 
