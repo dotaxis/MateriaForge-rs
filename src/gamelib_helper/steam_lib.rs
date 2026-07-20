@@ -9,19 +9,16 @@ use std::{
 use urlencoding::encode;
 
 pub fn get_library() -> Result<steamlocate::SteamDir> {
-    let home_dir = home::home_dir().expect("Couldn't get $HOME?");
-    let possible_libraries = vec![
-        // Native install directory
-        home_dir.join(".steam/root"),
-        // Flatpak install directory
-        home_dir.join(".var/app/com.valvesoftware.Steam/.steam/root"),
-    ];
+    let possible_libraries = steamlocate::locate_all().with_context(|| "Failed to locate Steam libraries")?;
 
+    log::info!("Possible Steam libraries: {:?}", possible_libraries);
     let libraries: Vec<PathBuf> = possible_libraries
         .into_iter()
-        .filter(|path| path.join("steamapps/libraryfolders.vdf").exists())
+        .filter(|steam_dir| steam_dir.path().join("steamapps/libraryfolders.vdf").exists())
+        .map(|steam_dir| steam_dir.path().to_path_buf())
         .collect();
 
+    log::info!("Filtered Steam libraries: {:?}", libraries);
     if libraries.len() == 1 {
         let library = steamlocate::SteamDir::from_dir(libraries[0].as_path())
             .context("Couldn't get library")?;
