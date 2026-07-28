@@ -105,9 +105,9 @@ fn run_install(
     let steam_dir: Option<steamlocate::SteamDir> = gamelib_helper::steam_lib::get_library().ok();
 
     if found_game.source == lib_game_detector::data::SupportedLaunchers::Steam {
-        let steam_install_dir = steam_dir.clone().ok_or_else(|| {
-            anyhow::anyhow!("Selected Steam game, but no Steam library could be found?")
-        })?;
+        let Some(steam_install_dir) = steam_dir.clone() else {
+            bail!("Selected Steam game, but no Steam library could be found?");
+        };
         config.insert("type", "steam".to_string());
         config.insert("steam_dir", steam_install_dir.path().display().to_string());
 
