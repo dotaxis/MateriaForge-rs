@@ -106,3 +106,7 @@ pub fn as_str(name: String, destination: PathBuf, contents: &str) -> FileAsStr {
         contents: contents.to_string(),
     }
 }
+
+#[cfg(test)]
+#[path = "tests/resource_handler.rs"]
+mod tests;

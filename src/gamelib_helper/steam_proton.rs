@@ -91,12 +91,17 @@ fn get_runtime(runner: &Runner, steam_dir: &steamlocate::SteamDir) -> Result<Opt
     }))
 }
 
-fn find_custom_versions(steam_dir: &steamlocate::SteamDir) -> Result<Vec<Runner>> {
-    let compat_dirs = [
+fn default_compat_dirs(steam_dir: &steamlocate::SteamDir) -> Vec<PathBuf> {
+    vec![
         steam_dir.path().join("compatibilitytools.d"),
         "/usr/share/steam/compatibilitytools.d".into(),
-    ];
+    ]
+}
 
+fn find_custom_versions_in(
+    compat_dirs: &[PathBuf],
+    steam_dir: &steamlocate::SteamDir,
+) -> Result<Vec<Runner>> {
     let mut custom_runners: Vec<Runner> = Vec::new();
     for path in compat_dirs
         .iter()
@@ -132,6 +137,14 @@ fn find_custom_versions(steam_dir: &steamlocate::SteamDir) -> Result<Vec<Runner>
 }
 
 pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>> {
+    let compat_dirs = default_compat_dirs(&steam_dir);
+    find_all_versions_in(&steam_dir, &compat_dirs)
+}
+
+fn find_all_versions_in(
+    steam_dir: &steamlocate::SteamDir,
+    compat_dirs: &[PathBuf],
+) -> Result<Vec<Runner>> {
     let mut proton_versions: Vec<Runner> = Vec::new();
     for library in (steam_dir.libraries()?).flatten() {
         for app in library.apps().flatten() {
@@ -156,7 +169,7 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         runtime: None,
                         is_custom: false,
                     };
-                    match get_runtime(&runner, &steam_dir) {
+                    match get_runtime(&runner, steam_dir) {
                         Ok(runtime) => {
                             runner.runtime = runtime;
                             proton_versions.push(runner);
@@ -172,8 +185,10 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
         }
     }
 
-    proton_versions
-        .extend(find_custom_versions(&steam_dir).context("Failed to find custom Proton versions")?);
+    proton_versions.extend(
+        find_custom_versions_in(compat_dirs, steam_dir)
+            .context("Failed to find custom Proton versions")?,
+    );
 
     if proton_versions.is_empty() {
         bail!("No Proton versions found")
@@ -210,3 +225,7 @@ pub fn find_highest_version(versions: &[Runner]) -> Option<&Runner> {
         }
     })
 }
+
+#[cfg(test)]
+#[path = "../tests/steam_proton.rs"]
+mod tests;

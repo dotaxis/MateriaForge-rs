@@ -1065,6 +1065,7 @@ dependencies = [
  "serde_json",
  "steamlocate",
  "sysinfo",
+ "tempfile",
  "textwrap",
  "toml",
  "urlencoding",

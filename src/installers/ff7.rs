@@ -258,3 +258,7 @@ impl GameInstaller for FF7Installer {
         settings_xml.write()
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/ff7.rs"]
+mod tests;

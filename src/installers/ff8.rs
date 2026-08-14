@@ -144,3 +144,7 @@ impl GameInstaller for FF8Installer {
         Ok(())
     }
 }
+
+#[cfg(test)]
+#[path = "../tests/ff8.rs"]
+mod tests;

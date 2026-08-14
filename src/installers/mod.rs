@@ -192,3 +192,7 @@ fn run_install(
 fn installers_registry() -> Vec<&'static dyn GameInstaller> {
     vec![&ff7::INSTALLER, &ff8::INSTALLER]
 }
+
+#[cfg(test)]
+#[path = "../tests/installers.rs"]
+mod tests;

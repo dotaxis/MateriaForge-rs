@@ -441,3 +441,7 @@ where
     );
     result
 }
+
+#[cfg(test)]
+#[path = "../tests/common.rs"]
+mod tests;
