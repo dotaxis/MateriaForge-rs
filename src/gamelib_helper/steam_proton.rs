@@ -72,9 +72,9 @@ fn get_runtime(runner: &Runner, steam_dir: &steamlocate::SteamDir) -> Result<Opt
         Err(_) => return Ok(None), // No require_tool_appid key = no runtime required
     };
 
-    let (app, library) = steam_dir
-        .find_app(runtime_appid)?
-        .with_context(|| format!("Required Steam Linux Runtime (app ID {runtime_appid}) is not installed. Please install it from your Steam library before launching."))?;
+    let (app, library) = steam_dir.find_app(runtime_appid)?.with_context(|| {
+        format!("Required Steam Linux Runtime (app ID {runtime_appid}) is not installed")
+    })?;
     let path = library.resolve_app_dir(&app);
     let name = app.name.as_ref().context("No app name?")?.to_string();
 
@@ -108,9 +108,15 @@ fn find_custom_versions(steam_dir: &steamlocate::SteamDir) -> Result<Vec<Runner>
                     path: runner_path,
                     runtime: None,
                 };
-                runner.runtime = get_runtime(&runner, steam_dir)?;
-
-                custom_runners.push(runner);
+                match get_runtime(&runner, steam_dir) {
+                    Ok(runtime) => {
+                        runner.runtime = runtime;
+                        custom_runners.push(runner);
+                    }
+                    Err(e) => {
+                        log::warn!("Skipping runner version {}: {}", runner.pretty_name, e);
+                    }
+                }
             }
         }
     }
@@ -139,9 +145,15 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         path: app_path,
                         runtime: None,
                     };
-                    runner.runtime = get_runtime(&runner, &steam_dir)?;
-
-                    proton_versions.push(runner);
+                    match get_runtime(&runner, &steam_dir) {
+                        Ok(runtime) => {
+                            runner.runtime = runtime;
+                            proton_versions.push(runner);
+                        }
+                        Err(e) => {
+                            log::warn!("Skipping runner version {}: {}", runner.pretty_name, e);
+                        }
+                    }
                 } else {
                     log::info!("Does not contain proton bin: {app_path:?}");
                 }
