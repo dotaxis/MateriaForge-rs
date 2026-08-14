@@ -128,7 +128,10 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
     let mut proton_versions: Vec<Runner> = Vec::new();
     for library in (steam_dir.libraries()?).flatten() {
         for app in library.apps().flatten() {
-            let app_name = app.name.as_ref().context("App name missing.")?;
+            let app_name = app.name.as_ref();
+            let Some(app_name) = app_name else {
+                continue;
+            };
             if app_name.contains("Proton") {
                 let app_path = library.resolve_app_dir(&app).join("proton");
                 if app_path.is_file() {
