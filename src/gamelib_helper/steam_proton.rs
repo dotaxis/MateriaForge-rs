@@ -18,10 +18,16 @@ pub fn select_version(runners: &[Runner]) -> Result<Runner> {
                 .and_then(|s| s.split('-').next()?.parse().ok())
                 .unwrap_or(0.0)
         };
-        ver(b).total_cmp(&ver(a))
+        a.is_custom
+            .cmp(&b.is_custom)
+            .then_with(|| ver(b).total_cmp(&ver(a)))
     });
 
-    let choices: Vec<&str> = std::iter::once("Automatic (Recommended)")
+    let has_official_proton = runners.iter().any(|r| !r.is_custom);
+
+    let choices: Vec<&str> = has_official_proton
+        .then_some("Automatic (Recommended)")
+        .into_iter()
         .chain(runners.iter().map(|r| r.pretty_name.as_str()))
         .collect();
 
@@ -32,12 +38,12 @@ pub fn select_version(runners: &[Runner]) -> Result<Runner> {
         .interact()
         .context("Proton selection failed")?;
 
-    if selection == 0 {
+    if has_official_proton && selection == 0 {
         Ok(find_highest_version(&runners)
             .context("No Proton versions available")?
             .clone())
     } else {
-        Ok(runners[selection - 1].clone())
+        Ok(runners[selection - usize::from(has_official_proton)].clone())
     }
 }
 
@@ -107,6 +113,7 @@ fn find_custom_versions(steam_dir: &steamlocate::SteamDir) -> Result<Vec<Runner>
                     pretty_name: name,
                     path: runner_path,
                     runtime: None,
+                    is_custom: true,
                 };
                 match get_runtime(&runner, steam_dir) {
                     Ok(runtime) => {
@@ -147,6 +154,7 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
                         pretty_name: app_name.to_string(),
                         path: app_path,
                         runtime: None,
+                        is_custom: false,
                     };
                     match get_runtime(&runner, &steam_dir) {
                         Ok(runtime) => {
@@ -176,27 +184,29 @@ pub fn find_all_versions(steam_dir: steamlocate::SteamDir) -> Result<Vec<Runner>
 
 pub fn find_highest_version(versions: &[Runner]) -> Option<&Runner> {
     versions.iter().max_by_key(|proton| {
-        let pretty_name = &proton.pretty_name;
-        let version_parts: Vec<&str> = pretty_name.split_whitespace().collect();
-        if version_parts.len() >= 2 && version_parts[0] == "Proton" {
-            let version_str = version_parts[1]
-                .split('-')
-                .next()
-                .unwrap_or(version_parts[1]);
-            match version_str.parse::<f64>() {
-                Ok(n) => ((n * 1000.0) as i64, 0),
-                Err(_) => {
-                    if version_str.to_lowercase().contains("experimental") {
-                        (0, 2)
-                    } else if version_str.to_lowercase().contains("hotfix") {
-                        (0, 1)
-                    } else {
-                        (0, 0)
-                    }
+        if proton.is_custom {
+            return (false, 0, 0);
+        }
+
+        let version_str = proton
+            .pretty_name
+            .split_whitespace()
+            .nth(1)
+            .map(|s| s.split('-').next().unwrap_or(s))
+            .unwrap_or("");
+
+        match version_str.parse::<f64>() {
+            Ok(n) => (true, (n * 1000.0) as i64, 0),
+            Err(_) => {
+                let version = version_str.to_lowercase();
+                if version.contains("experimental") {
+                    (true, 0, 2)
+                } else if version.contains("hotfix") {
+                    (true, 0, 1)
+                } else {
+                    (true, 0, 0)
                 }
             }
-        } else {
-            (0, 0)
         }
     })
 }

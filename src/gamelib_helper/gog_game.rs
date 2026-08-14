@@ -164,6 +164,7 @@ pub fn get_game(app_id: u32, game: &lib_game_detector::data::Game) -> Result<Gog
             .map(PathBuf::from)
             .context("GOG game JSON missing wineVersion bin")?,
         runtime: None,
+        is_custom: true,
     };
 
     if runner.name == "proton" {

@@ -14,6 +14,7 @@ pub struct Runner {
     pub pretty_name: String,
     pub path: PathBuf,
     pub runtime: Option<Runtime>,
+    pub is_custom: bool,
 }
 
 #[derive(Debug, Clone)]
