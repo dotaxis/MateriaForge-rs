@@ -132,6 +132,8 @@ pub fn set_controller_config(
         3837340 => ("(2026)", false),
         1698970154 => ("(gog)", true),
         39150 => ("", false),
+        1026680 => ("", false),
+        1086370078 => ("", true),
         _ => ("(unknown)", false),
     };
     let template = "controller_neptune_gamepad+mouse+click.vdf";
@@ -151,7 +153,7 @@ pub fn set_controller_config(
         ));
     }
     if steam_shortcut {
-        let shortcut_name = if app_id == 39150 {
+        let shortcut_name = if matches!(app_id, 39150 | 1026680 | 1086370078) {
             "launch junction viii".to_string()
         } else {
             format!("launch 7th heaven {shortcut_id}")

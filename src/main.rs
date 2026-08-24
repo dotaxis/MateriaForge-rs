@@ -33,7 +33,7 @@ fn draw_header() {
     let title = format!("Welcome to MateriaForge {VERSION}");
     let mut description = vec![
         "This script will:",
-        "1. Detect supported FF7 and FF8 Steam installs (plus FF7 GOG via Heroic)",
+        "1. Detect supported FF7/FF8 Steam/GOG installs (GOG support via Heroic)",
         "2. Apply proton prefix patches for the selected game",
         "3. Install the corresponding mod loader to a folder of your choosing",
         "4. Optionally add a desktop shortcut and Steam shortcut for easy access",
