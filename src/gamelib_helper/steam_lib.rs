@@ -133,7 +133,7 @@ pub fn set_controller_config(
         1698970154 => ("(gog)", true),
         39150 => ("", false),
         1026680 => ("", false),
-        1086370078 => ("", true),
+        1086370078 => ("(gog)", true),
         _ => ("(unknown)", false),
     };
     let template = "controller_neptune_gamepad+mouse+click.vdf";
