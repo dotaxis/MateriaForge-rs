@@ -7,8 +7,10 @@ use std::{env, path::Path};
 use materia_forge::gamelib_helper::{Game, PrefixRunner};
 use materia_forge::{config_handler, gamelib_helper, logging};
 
-static FF7_GOG_APPID: u32 = 1698970154;
-static FF8_APPID: u32 = 39150;
+const FF7_GOG_APPID: u32 = 1698970154;
+const FF8_APPID: u32 = 39150;
+const FF8_REMASTERED_APPID: u32 = 1026680;
+const FF8_GOG_APPID: u32 = 1086370078;
 
 fn run_exe<G: Game + PrefixRunner>(game: &G, exe: std::path::PathBuf) -> Result<()> {
     if let Some(runner) = game.runner() {
@@ -54,7 +56,10 @@ fn main() -> Result<()> {
         .and_then(|value| value.parse::<u32>().ok());
     let install_target = config_handler::read_value("target")
         .unwrap_or_else(|_| {
-            if app_id == Some(FF8_APPID) {
+            if matches!(
+                app_id,
+                Some(FF8_APPID | FF8_REMASTERED_APPID | FF8_GOG_APPID)
+            ) {
                 "ff8".to_string()
             } else {
                 "ff7".to_string()
@@ -83,12 +88,17 @@ fn main() -> Result<()> {
         "gog" => {
             let g = lib_game_detector::get_detector()
                 .get_all_detected_games_from_specific_launcher(SupportedLaunchers::HeroicGamesGOG);
+            let (gog_app_id, title_match) = if install_target == "ff8" {
+                (FF8_GOG_APPID, "final fantasy viii")
+            } else {
+                (FF7_GOG_APPID, "final fantasy vii")
+            };
             let heroic_game = g
                 .iter()
                 .flatten()
-                .find(|game| game.title.to_lowercase().contains("final fantasy vii"))
-                .unwrap();
-            let game = gamelib_helper::gog_game::get_game(FF7_GOG_APPID, &heroic_game)
+                .find(|game| game.title.to_lowercase().contains(title_match))
+                .with_context(|| format!("Configured type=gog, but {title_match} was not found"))?;
+            let game = gamelib_helper::gog_game::get_game(gog_app_id, &heroic_game)
                 .context("Configured type=gog, but GOG game was not found")?;
             run_exe(&game, loader_exe)?;
         }

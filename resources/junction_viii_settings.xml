@@ -21,7 +21,7 @@
   </Subscriptions>
   <LibraryLocation>LIBRARY_LOCATION</LibraryLocation>
   <FF8Exe>FF8_EXE</FF8Exe>
-  <FF8InstalledVersion>Steam</FF8InstalledVersion>
+  <FF8InstalledVersion>FF8_VERSION</FF8InstalledVersion>
   <FFNxUpdateChannel>UPDATE_CHANNEL</FFNxUpdateChannel>
   <AppUpdateChannel>UPDATE_CHANNEL</AppUpdateChannel>
   <Options>
