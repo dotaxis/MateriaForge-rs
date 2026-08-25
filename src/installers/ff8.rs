@@ -171,7 +171,7 @@ impl GameInstaller for FF8Installer {
 
         match (original, remaster) {
             (Some(og), Some(rm)) => {
-                let choices = &[&og.name, &format!("{} (Remastered)", rm.name)];
+                let choices = &[&og.name, &rm.name];
                 let default_selection = match preferred_app_id {
                     Some(FF8_REMASTERED_APPID) => 1,
                     _ => 0,
