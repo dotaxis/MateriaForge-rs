@@ -155,21 +155,15 @@ fn run_install(
 
     installer.pre_install(config)?;
 
-    let install_path = common::with_spinner(
-        &format!("Installing {}...", target.mod_loader_name()),
-        "Done!",
-        || installer.install(game.as_ref(), exe_path),
-    )?;
+    let install_path = installer.install(game.as_ref(), exe_path)?;
 
-    common::with_spinner("Finalizing installation...", "Done!", || {
-        installer.post_install(
-            &install_path,
-            game.as_ref(),
-            steam_dir.clone(),
-            is_deck,
-            update_channel,
-        )
-    })?;
+    installer.post_install(
+        &install_path,
+        game.as_ref(),
+        steam_dir.clone(),
+        is_deck,
+        update_channel,
+    )?;
 
     println!(
         "{} {} successfully installed to '{}'",

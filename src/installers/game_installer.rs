@@ -71,7 +71,11 @@ pub trait GameInstaller {
 
     fn install(&self, game: &dyn PrefixedGame, installer_path: PathBuf) -> Result<PathBuf> {
         let install_path = common::get_install_path(self.target())?;
-        common::install_loader(self.target(), game, installer_path, &install_path)?;
+        common::with_spinner(
+            &format!("Installing {}...", self.target().mod_loader_name()),
+            "Done!",
+            || common::install_loader(self.target(), game, installer_path, &install_path),
+        )?;
         Ok(install_path)
     }
 
