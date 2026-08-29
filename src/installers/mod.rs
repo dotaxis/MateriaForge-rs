@@ -2,10 +2,7 @@ use anyhow::{bail, Context, Result};
 use dialoguer::theme::ColorfulTheme;
 use lib_game_detector::get_detector;
 
-use crate::{
-    config_handler,
-    gamelib_helper::{self, PrefixedGame, DEFAULT_WINEDEBUG},
-};
+use crate::gamelib_helper::{self, PrefixedGame};
 
 mod common;
 mod ff7;
@@ -154,40 +151,25 @@ fn run_install(
         use_canary,
         target.github_asset_pattern(),
     )
-        .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
+    .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 
-    if installer.should_write_launcher_config() {
-        let mut env_vars = std::collections::HashMap::new();
-        env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
-        config_handler::write(config, env_vars).context("Failed to write config")?;
-    }
+    installer.pre_install(config)?;
 
-    let install_path = if installer.requires_install_path() {
-        common::get_install_path(target)?
-    } else {
-        game.path().to_path_buf()
-    };
-
-    common::with_spinner(
+    let install_path = common::with_spinner(
         &format!("Installing {}...", target.mod_loader_name()),
         "Done!",
-        || installer.run_loader_install(game.as_ref(), exe_path, &install_path),
+        || installer.install(game.as_ref(), exe_path),
     )?;
 
-    if installer.should_run_patch_install() {
-        common::with_spinner("Patching installation...", "Done!", || {
-            patch_install(installer, &install_path, game.as_ref(), update_channel)
-        })?;
-    }
-
-    if installer.should_manage_shortcuts() {
-        let steam_shortcut =
-            common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
-                .context("Failed to create shortcuts")?;
-
-        common::add_controller_config(game.as_ref(), &steam_dir, steam_shortcut, is_deck)
-            .context("Failed to set controller config")?;
-    }
+    common::with_spinner("Finalizing installation...", "Done!", || {
+        installer.post_install(
+            &install_path,
+            game.as_ref(),
+            steam_dir.clone(),
+            is_deck,
+            update_channel,
+        )
+    })?;
 
     println!(
         "{} {} successfully installed to '{}'",
@@ -202,17 +184,6 @@ fn run_install(
     Ok(())
 }
 
-fn patch_install(
-    installer: &dyn GameInstaller,
-    install_path: &std::path::Path,
-    game: &dyn PrefixedGame,
-    update_channel: &str,
-) -> Result<()> {
-    if installer.needs_common_patch_files() {
-        common::write_common_patch_files(install_path, game)?;
-    }
-    installer.patch_install(install_path, game, update_channel)
-}
 fn installers_registry() -> Vec<&'static dyn GameInstaller> {
     vec![&ff7::INSTALLER, &ff8::INSTALLER, &ff9::INSTALLER]
 }

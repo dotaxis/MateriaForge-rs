@@ -1,9 +1,9 @@
 use anyhow::{bail, Context, Result};
 use dialoguer::theme::ColorfulTheme;
 use lib_game_detector::data::{Game as DetectedGame, SupportedLaunchers};
-use std::fs;
-use std::os::unix::fs::PermissionsExt;
-use std::process::Command;
+use std::{
+    collections::HashMap, fs, os::unix::fs::PermissionsExt, path::PathBuf, process::Command,
+};
 
 use crate::gamelib_helper::{self, gog_game, PrefixedGame};
 
@@ -126,12 +126,7 @@ impl GameInstaller for FF9Installer {
         Ok((game, "gog"))
     }
 
-    fn patch_install(
-        &self,
-        _install_path: &std::path::Path,
-        _game: &dyn PrefixedGame,
-        _update_channel: &str,
-    ) -> Result<()> {
+    fn pre_install(&self, _config: HashMap<&str, String>) -> Result<()> {
         Ok(())
     }
 
@@ -139,32 +134,7 @@ impl GameInstaller for FF9Installer {
         false
     }
 
-    fn requires_install_path(&self) -> bool {
-        false
-    }
-
-    fn should_write_launcher_config(&self) -> bool {
-        false
-    }
-
-    fn should_run_patch_install(&self) -> bool {
-        false
-    }
-
-    fn should_manage_shortcuts(&self) -> bool {
-        false
-    }
-
-    fn needs_common_patch_files(&self) -> bool {
-        false
-    }
-
-    fn run_loader_install(
-        &self,
-        game: &dyn PrefixedGame,
-        installer_path: std::path::PathBuf,
-        _install_path: &std::path::Path,
-    ) -> Result<()> {
+    fn install(&self, game: &dyn PrefixedGame, installer_path: PathBuf) -> Result<PathBuf> {
         let installer_path = installer_path
             .canonicalize()
             .with_context(|| format!("Memoria patcher not found at {:?}", installer_path))?;
@@ -194,6 +164,17 @@ impl GameInstaller for FF9Installer {
             bail!("Memoria patcher exited with an error: {status}");
         }
 
+        Ok(game.path().to_path_buf())
+    }
+
+    fn post_install(
+        &self,
+        _install_path: &std::path::Path,
+        _game: &dyn PrefixedGame,
+        _steam_dir: Option<steamlocate::SteamDir>,
+        _is_deck: bool,
+        _update_channel: &str,
+    ) -> Result<()> {
         Ok(())
     }
 }

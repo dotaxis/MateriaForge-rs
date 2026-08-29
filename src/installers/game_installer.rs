@@ -1,8 +1,14 @@
-use anyhow::{bail, Result};
+use anyhow::{bail, Context, Result};
 use lib_game_detector::data::Game as DetectedGame;
-use std::path::{Path, PathBuf};
+use std::{
+    collections::HashMap,
+    path::{Path, PathBuf},
+};
 
-use crate::gamelib_helper::{steam_game::SteamGame, PrefixedGame};
+use crate::{
+    config_handler,
+    gamelib_helper::{steam_game::SteamGame, PrefixedGame, DEFAULT_WINEDEBUG},
+};
 
 use super::{common, target::InstallTarget};
 
@@ -46,41 +52,47 @@ pub trait GameInstaller {
 
     fn patch_install(
         &self,
-        install_path: &std::path::Path,
-        game: &dyn PrefixedGame,
-        update_channel: &str,
-    ) -> Result<()>;
+        _install_path: &std::path::Path,
+        _game: &dyn PrefixedGame,
+        _update_channel: &str,
+    ) -> Result<()> {
+        Ok(())
+    }
 
     fn requires_runner_selection(&self) -> bool {
         true
     }
 
-    fn requires_install_path(&self) -> bool {
-        true
+    fn pre_install(&self, config: HashMap<&str, String>) -> Result<()> {
+        let mut env_vars = HashMap::new();
+        env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
+        config_handler::write(config, env_vars).context("Failed to write config")
     }
 
-    fn should_write_launcher_config(&self) -> bool {
-        true
+    fn install(&self, game: &dyn PrefixedGame, installer_path: PathBuf) -> Result<PathBuf> {
+        let install_path = common::get_install_path(self.target())?;
+        common::install_loader(self.target(), game, installer_path, &install_path)?;
+        Ok(install_path)
     }
 
-    fn should_run_patch_install(&self) -> bool {
-        true
-    }
-
-    fn should_manage_shortcuts(&self) -> bool {
-        true
-    }
-
-    fn needs_common_patch_files(&self) -> bool {
-        true
-    }
-
-    fn run_loader_install(
+    fn post_install(
         &self,
-        game: &dyn PrefixedGame,
-        installer_path: PathBuf,
         install_path: &Path,
+        game: &dyn PrefixedGame,
+        steam_dir: Option<steamlocate::SteamDir>,
+        is_deck: bool,
+        update_channel: &str,
     ) -> Result<()> {
-        common::install_loader(self.target(), game, installer_path, install_path)
+        common::write_common_patch_files(install_path, game)?;
+        self.patch_install(install_path, game, update_channel)?;
+        let steam_shortcut = common::create_shortcuts(
+            self.target(),
+            install_path,
+            steam_dir.clone(),
+            game.app_id(),
+        )
+        .context("Failed to create shortcuts")?;
+        common::add_controller_config(game, &steam_dir, steam_shortcut, is_deck)
+            .context("Failed to set controller config")
     }
 }
