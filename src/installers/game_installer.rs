@@ -51,10 +51,6 @@ pub trait GameInstaller {
         update_channel: &str,
     ) -> Result<()>;
 
-    fn installer_asset_name(&self) -> Option<&'static str> {
-        None
-    }
-
     fn requires_runner_selection(&self) -> bool {
         true
     }

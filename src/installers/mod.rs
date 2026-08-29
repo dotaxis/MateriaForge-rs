@@ -153,7 +153,6 @@ fn run_install(
         cache_dir,
         use_canary,
         target.github_asset_pattern(),
-        installer.installer_asset_name(),
     )
         .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 

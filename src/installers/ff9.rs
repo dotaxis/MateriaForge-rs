@@ -35,6 +35,10 @@ impl InstallTarget for FF9Target {
     fn install_log_name(&self) -> &'static str {
         "Memoria.log"
     }
+
+    fn github_asset_pattern(&self) -> &'static str {
+        "Memoria.Patcher-linux-x64"
+    }
 }
 
 pub struct FF9Installer;
@@ -129,10 +133,6 @@ impl GameInstaller for FF9Installer {
         _update_channel: &str,
     ) -> Result<()> {
         Ok(())
-    }
-
-    fn installer_asset_name(&self) -> Option<&'static str> {
-        Some("Memoria.Patcher-linux-x64")
     }
 
     fn requires_runner_selection(&self) -> bool {
