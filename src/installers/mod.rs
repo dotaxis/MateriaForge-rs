@@ -2,14 +2,12 @@ use anyhow::{bail, Context, Result};
 use dialoguer::theme::ColorfulTheme;
 use lib_game_detector::get_detector;
 
-use crate::{
-    config_handler,
-    gamelib_helper::{self, PrefixedGame, DEFAULT_WINEDEBUG},
-};
+use crate::gamelib_helper::{self, PrefixedGame};
 
 mod common;
 mod ff7;
 mod ff8;
+mod ff9;
 mod game_installer;
 mod target;
 
@@ -114,7 +112,9 @@ fn run_install(
         let mut steam_game =
             installer.resolve_steam_game(steam_install_dir.clone(), detected_app_id(found_game))?;
 
-        steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
+        if installer.requires_runner_selection() {
+            steam_game.runner = Some(gamelib_helper::steam_game::select_runner(&steam_game)?);
+        }
         game = Box::new(steam_game);
     } else {
         let (resolved_game, install_type) = installer.resolve_nonsteam_game(found_game)?;
@@ -153,28 +153,17 @@ fn run_install(
     )
     .with_context(|| format!("Failed to download {}", target.mod_loader_name()))?;
 
-    let mut env_vars = std::collections::HashMap::new();
-    env_vars.insert("WINEDEBUG", DEFAULT_WINEDEBUG.to_string());
-    config_handler::write(config, env_vars).context("Failed to write config")?;
+    installer.pre_install(config)?;
 
-    let install_path = common::get_install_path(target)?;
+    let install_path = installer.install(game.as_ref(), exe_path)?;
 
-    common::with_spinner(
-        &format!("Installing {}...", target.mod_loader_name()),
-        "Done!",
-        || -> Result<()> {
-            common::install_loader(target, game.as_ref(), exe_path, &install_path)?;
-            common::write_common_patch_files(&install_path, game.as_ref())?;
-            installer.patch_install(&install_path, game.as_ref(), update_channel)
-        },
+    installer.post_install(
+        &install_path,
+        game.as_ref(),
+        steam_dir.clone(),
+        is_deck,
+        update_channel,
     )?;
-
-    let steam_shortcut =
-        common::create_shortcuts(target, &install_path, steam_dir.clone(), game.app_id())
-            .context("Failed to create shortcuts")?;
-
-    common::add_controller_config(game.as_ref(), &steam_dir, steam_shortcut, is_deck)
-        .context("Failed to set controller config")?;
 
     println!(
         "{} {} successfully installed to '{}'",
@@ -190,7 +179,7 @@ fn run_install(
 }
 
 fn installers_registry() -> Vec<&'static dyn GameInstaller> {
-    vec![&ff7::INSTALLER, &ff8::INSTALLER]
+    vec![&ff7::INSTALLER, &ff8::INSTALLER, &ff9::INSTALLER]
 }
 
 #[cfg(test)]

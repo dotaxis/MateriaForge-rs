@@ -23,6 +23,7 @@ MateriaForge is the successor to [7thDeck](https://github.com/dotaxis/7thDeck) a
 | |Final Fantasy VII (2013) | ✅ | N/A | N/A | #ff7-linux |
 | **Junction VIII** | Final Fantasy VIII Remastered | ✅ | ✅ | N/A | #ff8-linux |
 | | Final Fantasy VIII (2013) | ✅ | N/A | N/A | #ff8-linux |
+| **Memoria** | Final Fantasy IX | ✅ | ✅ | N/A | #ff9-linux |
 ---
 
 ## Installation
@@ -114,6 +115,7 @@ The compiled binary will be at `target/release/MateriaForge`.
 - [8thDeck](https://github.com/dotaxis/8thDeck) — the Junction VIII Linux installer this project succeeds
 - [7th Heaven](https://github.com/tsunamods-codes/7th-Heaven) — the FF7 mod loader MateriaForge installs
 - [Junction VIII](https://github.com/tsunamods-codes/Junction-VIII) — the FF8 mod loader MateriaForge installs
+- [Memoria](https://github.com/Albeoris/Memoria) - the FF9 mod loader MateriaForge installs
 - [Heroic Games Launcher](https://heroicgameslauncher.com/) — GOG & Epic launcher for Linux
 - [lib_game_detector](https://github.com/Rolv-Apneseth/lib_game_detector) — Rust crate used for detecting installed GOG games
 - [steamlocate](https://github.com/WilliamVenner/steamlocate-rs) — Rust crate used for parsing Steam libraries

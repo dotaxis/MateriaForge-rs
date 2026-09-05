@@ -33,8 +33,13 @@ pub fn download_asset(
             .json()?;
         releases
             .into_iter()
-            .next()
-            .context("No releases found in GitHub repo")?
+            .find(|release| {
+                release
+                    .get("prerelease")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false)
+            })
+            .context("No pre-release found in GitHub repo")?
     } else {
         let release_url = format!("https://api.github.com/repos/{repo}/releases/latest");
         client
@@ -51,7 +56,7 @@ pub fn download_asset(
     let asset = assets
         .iter()
         .find(|a| a["name"].as_str().unwrap_or("").contains(file_pattern))
-        .context(format!("No asset found containing '{file_pattern}'"))?;
+        .with_context(|| format!("No asset found containing '{file_pattern}'"))?;
 
     let download_url = asset["browser_download_url"]
         .as_str()
