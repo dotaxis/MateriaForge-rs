@@ -8,7 +8,7 @@ use std::{
 };
 use urlencoding::encode;
 
-pub fn get_library() -> Result<steamlocate::SteamDir> {
+pub fn get_library() -> Result<Option<steamlocate::SteamDir>> {
     let possible_libraries =
         steamlocate::locate_all().with_context(|| "Failed to locate Steam libraries")?;
 
@@ -25,39 +25,45 @@ pub fn get_library() -> Result<steamlocate::SteamDir> {
         .collect();
 
     log::info!("Filtered Steam libraries: {:?}", libraries);
-    if libraries.len() == 1 {
-        let library = steamlocate::SteamDir::from_dir(libraries[0].as_path())
-            .context("Couldn't get library")?;
-        log::info!("Steam installation located: {}", libraries[0].display());
-        return Ok(library);
+    match libraries.len() {
+        0 => {
+            log::warn!("No Steam libraries found.");
+            return Ok(None);
+        }
+        1 => {
+            let library = steamlocate::SteamDir::from_dir(libraries[0].as_path())
+                .context("Couldn't get library")?;
+            log::info!("Steam installation located: {}", libraries[0].display());
+            return Ok(Some(library));
+        }
+        _ => {
+            log::warn!("Multiple Steam installations detected. Allowing user to select.");
+            println!(
+                "{} Multiple Steam installations detected.",
+                console::style("!").yellow()
+            );
+
+            let choices = &[
+                format!(
+                    "Native: {}",
+                    console::style(libraries[0].display()).bold().underlined()
+                ),
+                format!(
+                    "Flatpak: {}",
+                    console::style(libraries[1].display()).bold().underlined()
+                ),
+            ];
+            let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
+                .with_prompt("Select a Steam installation to continue:")
+                .items(choices)
+                .default(0)
+                .interact()?;
+
+            let library = steamlocate::SteamDir::from_dir(libraries[selection].as_path())
+                .context("Failed to get library from dir")?;
+            return Ok(Some(library));
+        }
     }
-
-    log::warn!("Multiple Steam installations detected. Allowing user to select.");
-    println!(
-        "{} Multiple Steam installations detected.",
-        console::style("!").yellow()
-    );
-
-    let choices = &[
-        format!(
-            "Native: {}",
-            console::style(libraries[0].display()).bold().underlined()
-        ),
-        format!(
-            "Flatpak: {}",
-            console::style(libraries[1].display()).bold().underlined()
-        ),
-    ];
-    let selection = dialoguer::Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("Select a Steam installation to continue:")
-        .items(choices)
-        .default(0)
-        .interact()?;
-
-    let library = steamlocate::SteamDir::from_dir(libraries[selection].as_path())
-        .context("Failed to get library from dir")?;
-
-    Ok(library)
 }
 
 pub fn add_nonsteam_game(file: &Path, steam_dir: steamlocate::SteamDir) -> Result<()> {

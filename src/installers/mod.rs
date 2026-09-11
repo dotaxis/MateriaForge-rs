@@ -100,7 +100,8 @@ fn run_install(
     config.insert("target", target.target_key().to_string());
 
     let game: Box<dyn PrefixedGame>;
-    let steam_dir: Option<steamlocate::SteamDir> = gamelib_helper::steam_lib::get_library().ok();
+    let steam_dir: Option<steamlocate::SteamDir> =
+        gamelib_helper::steam_lib::get_library().context("Failed to locate Steam")?;
 
     if found_game.source == lib_game_detector::data::SupportedLaunchers::Steam {
         let Some(steam_install_dir) = steam_dir.clone() else {
