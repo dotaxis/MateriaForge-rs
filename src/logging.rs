@@ -2,7 +2,7 @@ use anyhow::{Context, Result};
 use log::{error, LevelFilter};
 use log4rs::{
     append::{console::ConsoleAppender, file::FileAppender},
-    config::{Appender, Config, Root},
+    config::{Appender, Config, Logger, Root},
     encode::pattern::PatternEncoder,
     filter::threshold::ThresholdFilter,
 };
@@ -27,6 +27,15 @@ pub fn init(filename: &str) -> Result<()> {
         .build(log_path)?;
 
     let config = Config::builder()
+        .logger(Logger::builder().build("lib_game_detector", LevelFilter::Warn))
+        .logger(Logger::builder().build(
+            "lib_game_detector::linux::launchers::steam::steam_base",
+            LevelFilter::Debug,
+        ))
+        .logger(Logger::builder().build(
+            "lib_game_detector::linux::launchers::heroic::gog",
+            LevelFilter::Debug,
+        ))
         .appender(Appender::builder().build("file", Box::new(file)))
         .appender(
             Appender::builder()
