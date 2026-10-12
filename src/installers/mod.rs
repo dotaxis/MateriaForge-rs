@@ -1,6 +1,6 @@
 use anyhow::{bail, Context, Result};
 use dialoguer::theme::ColorfulTheme;
-use lib_game_detector::get_detector;
+use lib_game_detector::{data::SupportedLaunchers, get_detector};
 
 use crate::gamelib_helper::{self, PrefixedGame};
 
@@ -37,7 +37,14 @@ pub(super) fn detected_app_id(game: &lib_game_detector::data::Game) -> Option<u3
 
 pub fn run(is_deck: bool) -> Result<()> {
     let detector = get_detector();
-    let installs = detector.get_all_detected_games();
+    let installs: Vec<_> = [
+        SupportedLaunchers::Steam,
+        SupportedLaunchers::HeroicGamesGOG,
+    ]
+    .into_iter()
+    .filter_map(|source| detector.get_all_detected_games_from_specific_launcher(source))
+    .flatten()
+    .collect();
     let installers = installers_registry();
 
     let mut available: Vec<(&dyn GameInstaller, Detection)> = installers
